@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    .neo-border { border: 4px solid #1a1c1c; }
+    .neo-shadow { box-shadow: 4px 4px 0px 0px #1a1c1c; }
+    .neo-shadow-hover:hover { box-shadow: 8px 8px 0px 0px #1a1c1c; transform: translate(-4px, -4px); }
+    .neo-button:active { box-shadow: 0px 0px 0px 0px #1a1c1c; transform: translate(4px, 4px); }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+@keyframes neo-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-10px) rotate(-2deg); }
+    75% { transform: translateY(10px) rotate(2deg); }
+}
+
+@keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+}
+
+@layer utilities {
+    .animate-neo-float {
+        animation: neo-float 4s ease-in-out infinite;
+    }
+}
