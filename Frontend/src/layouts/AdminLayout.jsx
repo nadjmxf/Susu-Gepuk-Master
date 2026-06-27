@@ -19,73 +19,85 @@ export default function AdminLayout({ children }) {
   };
 
   const menuItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: 'dashboard' },
-    { name: 'Kelola Data Rider', path: '/admin/riders', icon: 'manage_accounts' },
-    { name: 'Monitor Lokasi Rider', path: '/admin/monitor', icon: 'location_on' },
-    { name: 'Kelola Data Outlet', path: '/admin/outlets', icon: 'storefront' },
-    { name: 'Kelola Announcement', path: '/admin/announcement', icon: 'campaign' },
+    { name: 'Dashboard', path: '/admin/dashboard', icon: 'grid_view' },
+    { name: 'Kelola Rider', path: '/admin/riders', icon: 'group' },
+    { name: 'Kelola Outlet', path: '/admin/outlets', icon: 'storefront' },
+    { name: 'Laporan Penjualan', path: '/admin/reports', icon: 'description' },
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#1e3a8a] font-sans">
+    <div className="flex min-h-screen bg-[#0A1045] font-sans">
       {/* Sidebar */}
-      <aside className="w-52 bg-white border-r-4 border-gray-900 flex flex-col z-10 sticky top-0 h-screen shrink-0 shadow-xl">
-        
-        {/* Profile Section */}
-        <div className="p-5 border-b-2 border-gray-200 flex flex-col items-center">
-          <div className="w-16 h-16 bg-[#fdd835] rounded-2xl border-4 border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex items-center justify-center mb-3">
-            <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+      <aside className="w-64 bg-white border-r-[4px] border-[#3B82F6] flex flex-col z-10 sticky top-0 h-screen shrink-0 p-5 justify-between">
+        <div>
+          {/* Profile Section */}
+          <div className="border-[3px] border-[#3B82F6] rounded-2xl p-4 flex flex-col items-center mb-6">
+            <div className="w-[60px] h-[60px] bg-[#FACC15] rounded-xl border-[2.5px] border-black shadow-[3px_3px_0_0_#000] flex items-center justify-center mb-3">
+              <span className="material-symbols-outlined text-3xl text-black" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+            </div>
+            <h2 className="text-md font-black text-black leading-tight text-center">
+              {user?.nama_admin || 'Budi Santoso'}
+            </h2>
+            <div className="flex items-center mt-1 text-gray-500 font-bold text-[10px]">
+              <span className="material-symbols-outlined text-xs mr-0.5 text-red-500">location_on</span>
+              <span>Bundaran HI (Pos 1)</span>
+            </div>
           </div>
-          <h2 className="text-lg font-black text-gray-900">{user?.nama_admin || 'Admin'}</h2>
-          <p className="text-xs text-gray-600 mt-1">@{user?.username}</p>
+
+          {/* Navigation */}
+          <nav className="flex flex-col gap-4">
+            {menuItems.map((item) => {
+              const isActive = currentPath === item.path;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border-[3px] border-black font-black text-xs transition-all shadow-[4px_4px_0_0_#000] ${
+                    isActive
+                      ? 'bg-[#FACC15] text-black translate-x-0.5 translate-y-0.5 shadow-[2px_2px_0_0_#000]'
+                      : 'bg-white text-black hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px] shrink-0" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+                    {item.icon}
+                  </span>
+                  <span className="leading-tight">{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-3 flex flex-col gap-2 overflow-y-auto">
-          {menuItems.map((item) => {
-            const isActive = currentPath === item.path;
-            return (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-4 transition-all font-bold text-sm ${
-                  isActive
-                    ? 'bg-[#fdd835] border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)]'
-                    : 'bg-white border-transparent hover:border-gray-900 hover:shadow-[4px_4px_0_0_rgba(17,24,39,1)] text-gray-700'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[18px] shrink-0" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>{item.icon}</span>
-                <span className="leading-tight">{item.name}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
         {/* Logout & Footer */}
-        <div className="p-3 border-t-2 border-gray-200 flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <button 
             onClick={handleLogout}
-            className="flex items-center justify-center gap-2 w-full px-3 py-2.5 bg-[#fdd835] border-4 border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] rounded-xl font-bold text-sm hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(17,24,39,1)] transition-all"
+            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[#DC2626] text-white border-[3px] border-black shadow-[4px_4px_0_0_#000] rounded-xl font-black text-xs uppercase hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">logout</span>
             Logout
           </button>
-          <div className="text-[10px] text-blue-800 font-medium flex flex-col gap-1 px-1">
+          
+          <div className="text-[9px] text-[#0A1045] font-bold flex flex-col gap-1 px-1">
             <p>© 2024 Susu Gepuk<br/>Delivery System</p>
-            <Link to="#" className="hover:underline">SUPPORT</Link>
-            <Link to="#" className="hover:underline">PRIVACY POLICY</Link>
+            <div className="flex gap-2 text-gray-500 font-bold">
+              <Link to="#" className="hover:underline">SUPPORT</Link>
+              <span>•</span>
+              <Link to="#" className="hover:underline">PRIVACY POLICY</Link>
+            </div>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-x-hidden flex flex-col">
-        {/* Top bar */}
-        <div className="h-14 flex justify-end items-center px-8 bg-white border-b-4 border-gray-900 shrink-0 shadow-sm">
-          <img src="/susu.png" alt="Susu Gepuk" className="h-7" />
+      <main className="flex-1 overflow-x-hidden flex flex-col bg-[#0A1045]">
+        {/* Top Floating Logo (Matches Photo) */}
+        <div className="flex justify-end items-center px-8 py-5 shrink-0">
+          <img src="/susu.png" alt="Susu Gepuk" className="h-10" />
         </div>
+        
         {/* Page Content */}
-        <div className="p-8 flex-1 bg-[#1e3a8a]">
+        <div className="px-8 pb-8 flex-1">
           {children || <Outlet />}
         </div>
       </main>

@@ -17,6 +17,9 @@ const RekapPenjualan = lazy(() => import('./pages/rider/RekapPenjualan'));
 const RiwayatPenjualan = lazy(() => import('./pages/rider/RiwayatPenjualan'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminRiders = lazy(() => import('./pages/admin/Riders'));
+const AdminOutlets = lazy(() => import('./pages/admin/Outlets'));
+const AdminReports = lazy(() => import('./pages/admin/Reports'));
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -62,6 +65,9 @@ function App() {
         }>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="riders" element={<AdminRiders />} />
+          <Route path="outlets" element={<AdminOutlets />} />
+          <Route path="reports" element={<AdminReports />} />
         </Route>
       </Routes>
       </Suspense>

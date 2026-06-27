@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+
 
 export default function Header() {
   const [activeItem, setActiveItem] = useState('Home');
@@ -124,21 +124,6 @@ export default function Header() {
         <span className="material-symbols-outlined text-3xl">menu</span>
       </button>
 
-      {/* Login Buttons */}
-      <div className="flex items-center gap-3">
-        <Link 
-          to="/admin/login"
-          className="hidden sm:inline-block px-4 py-2 text-sm font-bold text-[#0f2c7a] bg-white hover:bg-gray-100 border-2 border-[#0f2c7a] rounded-lg transition-all"
-        >
-          Admin Login
-        </Link>
-        <Link 
-          to="/rider/login"
-          className="px-4 py-2 text-sm font-bold text-white bg-[#0f2c7a] hover:bg-[#0a1a4d] border-2 border-[#0f2c7a] rounded-lg transition-all"
-        >
-          Rider Login
-        </Link>
-      </div>
     </header>
   );
 }

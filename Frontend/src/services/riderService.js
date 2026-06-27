@@ -75,6 +75,19 @@ const riderService = {
       };
     }
   },
+
+  // Create a new rider
+  createRider: async (payload) => {
+    try {
+      const response = await api.post('/rider', payload);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || {
+        success: false,
+        message: 'Gagal menambahkan data rider',
+      };
+    }
+  },
 };
 
 export default riderService;
