@@ -123,6 +123,21 @@ const penjualanService = {
       };
     }
   },
+
+  // Get reports summary for admin panel
+  getReportsSummary: async (month, year, page = 1) => {
+    try {
+      const response = await api.get('/penjualan/reports/summary', {
+        params: { month, year, page }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || {
+        success: false,
+        message: 'Gagal mendapatkan rekap data laporan',
+      };
+    }
+  },
 };
 
 export default penjualanService;

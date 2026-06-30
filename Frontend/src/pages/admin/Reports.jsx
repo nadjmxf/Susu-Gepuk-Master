@@ -1,270 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import penjualanService from '../../services/penjualanService';
 
 export default function Reports() {
   // ----------------------------------------------------
-  // 1. SELECT FILTER STATES
+  // 1. SELECT FILTER & PAGINATION STATES
   // ----------------------------------------------------
-  const [selectedMonth, setSelectedMonth] = useState('Mei');
+  const [selectedMonth, setSelectedMonth] = useState('Juni');
   const [selectedYear, setSelectedYear] = useState('2026');
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  // Loaded data state
+  const [metrics, setMetrics] = useState({
+    terjual: '0 pcs',
+    basi: '0 pcs',
+    rusak: '0 pcs',
+    pendapatan: 'Rp 0'
+  });
+  const [reportsData, setReportsData] = useState([]);
+  const [paginationInfo, setPaginationInfo] = useState({
+    current_page: 1,
+    total: 0,
+    per_page: 10,
+    last_page: 1
+  });
 
   // ----------------------------------------------------
-  // 2. MOCK DATA BY PERIOD
+  // 2. FETCH DATA FROM BACKEND API
   // ----------------------------------------------------
-  const monthlyMetrics = {
-    Mei: {
-      terjual: '2.450 pcs',
-      basi: '12 pcs',
-      rusak: '5 pcs',
-      pendapatan: 'Rp 40.000.000',
-      data: [
-        {
-          id: 1,
-          tanggal: '12 Mei 2026',
-          waktu: '17:30 WIB',
-          rider: 'Budi Santoso',
-          unit: 'SOTR Unit-A1',
-          gps: 'Jl. Sudirman No.5',
-          bawa: 140,
-          terjual: 21,
-          basi: 0,
-          rusak: 0,
-          metode: 'QRIS',
-          setoran: 246000
-        },
-        {
-          id: 2,
-          tanggal: '11 Mei 2026',
-          waktu: '17:15 WIB',
-          rider: 'Ahmad Kurniawan',
-          unit: 'SOTR Unit-A2',
-          gps: 'Jl. Arifin Ahmad',
-          bawa: 100,
-          terjual: 80,
-          basi: 2,
-          rusak: 1,
-          metode: 'CASH',
-          setoran: 1200000
-        },
-        {
-          id: 3,
-          tanggal: '10 Mei 2026',
-          waktu: '17:20 WIB',
-          rider: 'Siti Aminah',
-          unit: 'SOTR Unit-B1',
-          gps: 'Jl. Monas Timur',
-          bawa: 120,
-          terjual: 95,
-          basi: 5,
-          rusak: 0,
-          metode: 'QRIS',
-          setoran: 1140000
-        },
-        {
-          id: 4,
-          tanggal: '09 Mei 2026',
-          waktu: '16:45 WIB',
-          rider: 'Budi Santoso',
-          unit: 'SOTR Unit-A1',
-          gps: 'Jl. Sudirman',
-          bawa: 140,
-          terjual: 140,
-          basi: 0,
-          rusak: 0,
-          metode: 'QRIS',
-          setoran: 1680000
-        },
-        {
-          id: 5,
-          tanggal: '08 Mei 2026',
-          waktu: '17:00 WIB',
-          rider: 'Ahmad Kurniawan',
-          unit: 'SOTR Unit-A2',
-          gps: 'Jl. Thamrin',
-          bawa: 100,
-          terjual: 98,
-          basi: 2,
-          rusak: 0,
-          metode: 'CASH',
-          setoran: 1176000
-        },
-        {
-          id: 6,
-          tanggal: '07 Mei 2026',
-          waktu: '17:10 WIB',
-          rider: 'Siti Aminah',
-          unit: 'SOTR Unit-B1',
-          gps: 'Jl. Kota Tua',
-          bawa: 120,
-          terjual: 115,
-          basi: 5,
-          rusak: 0,
-          metode: 'QRIS',
-          setoran: 1380000
-        },
-        {
-          id: 7,
-          tanggal: '06 Mei 2026',
-          waktu: '17:25 WIB',
-          rider: 'Budi Santoso',
-          unit: 'SOTR Unit-A1',
-          gps: 'Jl. Senayan Park',
-          bawa: 140,
-          terjual: 130,
-          basi: 10,
-          rusak: 0,
-          metode: 'QRIS',
-          setoran: 1560000
-        }
-      ]
-    },
-    Juni: {
-      terjual: '2.890 pcs',
-      basi: '8 pcs',
-      rusak: '2 pcs',
-      pendapatan: 'Rp 46.500.000',
-      data: [
-        {
-          id: 1,
-          tanggal: '15 Juni 2026',
-          waktu: '17:45 WIB',
-          rider: 'Budi Santoso',
-          unit: 'SOTR Unit-A1',
-          gps: 'Jl. Sudirman No.5',
-          bawa: 150,
-          terjual: 145,
-          basi: 3,
-          rusak: 2,
-          metode: 'QRIS',
-          setoran: 1740000
-        },
-        {
-          id: 2,
-          tanggal: '14 Juni 2026',
-          waktu: '17:10 WIB',
-          rider: 'Ahmad Kurniawan',
-          unit: 'SOTR Unit-A2',
-          gps: 'Jl. Arifin Ahmad',
-          bawa: 110,
-          terjual: 108,
-          basi: 2,
-          rusak: 0,
-          metode: 'CASH',
-          setoran: 1296000
-        },
-        {
-          id: 3,
-          tanggal: '13 Juni 2026',
-          waktu: '17:15 WIB',
-          rider: 'Siti Aminah',
-          unit: 'SOTR Unit-B1',
-          gps: 'Jl. Monas Timur',
-          bawa: 120,
-          terjual: 118,
-          basi: 2,
-          rusak: 0,
-          metode: 'QRIS',
-          setoran: 1416000
-        },
-        {
-          id: 4,
-          tanggal: '12 Juni 2026',
-          waktu: '17:30 WIB',
-          rider: 'Reza Wijaya',
-          unit: 'SOTR Unit-A3',
-          gps: 'Jl. Bintaro Utama',
-          bawa: 130,
-          terjual: 128,
-          basi: 1,
-          rusak: 1,
-          metode: 'QRIS',
-          setoran: 1536000
-        },
-        {
-          id: 5,
-          tanggal: '11 Juni 2026',
-          waktu: '17:00 WIB',
-          rider: 'Budi Santoso',
-          unit: 'SOTR Unit-A1',
-          gps: 'Jl. Thamrin',
-          bawa: 140,
-          terjual: 140,
-          basi: 0,
-          rusak: 0,
-          metode: 'CASH',
-          setoran: 1680000
-        },
-        {
-          id: 6,
-          tanggal: '10 Juni 2026',
-          waktu: '17:05 WIB',
-          rider: 'Ahmad Kurniawan',
-          unit: 'SOTR Unit-A2',
-          gps: 'Jl. Kota Tua',
-          bawa: 100,
-          terjual: 95,
-          basi: 5,
-          rusak: 0,
-          metode: 'QRIS',
-          setoran: 1140000
-        },
-        {
-          id: 7,
-          tanggal: '09 Juni 2026',
-          waktu: '17:10 WIB',
-          rider: 'Siti Aminah',
-          unit: 'SOTR Unit-B1',
-          gps: 'Jl. Senayan Park',
-          bawa: 120,
-          terjual: 110,
-          basi: 10,
-          rusak: 0,
-          metode: 'QRIS',
-          setoran: 1320000
-        }
-      ]
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      const response = await penjualanService.getReportsSummary(selectedMonth, selectedYear, currentPage);
+      if (response.success) {
+        setMetrics(response.metrics);
+        setReportsData(response.data);
+        setPaginationInfo(response.pagination);
+      }
+    } catch (error) {
+      console.error('Gagal memuat data laporan:', error);
+      // Reset on error
+      setReportsData([]);
+      setMetrics({
+        terjual: '0 pcs',
+        basi: '0 pcs',
+        rusak: '0 pcs',
+        pendapatan: 'Rp 0'
+      });
+      setPaginationInfo({
+        current_page: 1,
+        total: 0,
+        per_page: 10,
+        last_page: 1
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Default fallback data if other month selected
-  const defaultPeriodData = {
-    terjual: '1.200 pcs',
-    basi: '4 pcs',
-    rusak: '1 pcs',
-    pendapatan: 'Rp 18.000.000',
-    data: [
-      {
-        id: 1,
-        tanggal: '01 ' + selectedMonth + ' ' + selectedYear,
-        waktu: '17:00 WIB',
-        rider: 'Budi Santoso',
-        unit: 'SOTR Unit-A1',
-        gps: 'Jl. Sudirman',
-        bawa: 120,
-        terjual: 118,
-        basi: 1,
-        rusak: 1,
-        metode: 'QRIS',
-        setoran: 1416000
-      },
-      {
-        id: 2,
-        tanggal: '02 ' + selectedMonth + ' ' + selectedYear,
-        waktu: '17:10 WIB',
-        rider: 'Ahmad Kurniawan',
-        unit: 'SOTR Unit-A2',
-        gps: 'Jl. Thamrin',
-        bawa: 100,
-        terjual: 97,
-        basi: 3,
-        rusak: 0,
-        metode: 'CASH',
-        setoran: 1164000
-      }
-    ]
-  };
+  useEffect(() => {
+    fetchReports();
+  }, [selectedMonth, selectedYear, currentPage]);
 
-  const activePeriod = monthlyMetrics[selectedMonth] || defaultPeriodData;
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= paginationInfo.last_page) {
+      setCurrentPage(newPage);
+    }
+  };
 
   return (
     <div className="w-full space-y-8 pb-10 text-left">
@@ -341,7 +144,7 @@ export default function Reports() {
               TOTAL TERJUAL (SEBULAN)
             </span>
             <span className="text-xl font-black text-black leading-none mt-2">
-              {activePeriod.terjual}
+              {metrics.terjual}
             </span>
           </div>
 
@@ -351,7 +154,7 @@ export default function Reports() {
               TOTAL SUSU BASI (SEBULAN)
             </span>
             <span className="text-xl font-black text-[#EF4444] leading-none mt-2">
-              {activePeriod.basi}
+              {metrics.basi}
             </span>
           </div>
 
@@ -361,7 +164,7 @@ export default function Reports() {
               TOTAL KEMASAN RUSAK (SEBULAN)
             </span>
             <span className="text-xl font-black text-[#EC4899] leading-none mt-2">
-              {activePeriod.rusak}
+              {metrics.rusak}
             </span>
           </div>
 
@@ -371,7 +174,7 @@ export default function Reports() {
               TOTAL PENDAPATAN (SEBULAN)
             </span>
             <span className="text-xl font-black text-white leading-none mt-2">
-              {activePeriod.pendapatan}
+              {metrics.pendapatan}
             </span>
           </div>
         </div>
@@ -385,114 +188,124 @@ export default function Reports() {
         
         {/* Daily Reports Table */}
         <div className="overflow-x-auto border-[3px] border-black rounded-xl shadow-[4px_4px_0_0_#000]">
-          <table className="w-full border-collapse bg-white text-left text-xs font-bold text-black min-w-[900px]">
-            <thead>
-              <tr className="bg-[#F1F5F9] border-b-[3px] border-black text-[10px] uppercase tracking-wider font-black text-slate-800">
-                <th className="px-5 py-4 border-r-2 border-gray-200 text-center w-28">TANGGAL & WAKTU</th>
-                <th className="px-5 py-4 border-r-2 border-gray-200 w-44">NAMA RIDER (UNIT)</th>
-                <th className="px-5 py-4 border-r-2 border-gray-200">LOKASI LAST GPS</th>
-                <th className="px-3 py-4 border-r-2 border-gray-200 text-center w-16">BAWA</th>
-                <th className="px-3 py-4 border-r-2 border-gray-200 text-center w-16">TERJUAL</th>
-                <th className="px-3 py-4 border-r-2 border-gray-200 text-center w-16">BASI</th>
-                <th className="px-3 py-4 border-r-2 border-gray-200 text-center w-16">RUSAK</th>
-                <th className="px-4 py-4 border-r-2 border-gray-200 text-center w-24">METODE</th>
-                <th className="px-5 py-4 text-right w-36">TOTAL SETORAN</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y-2 divide-gray-100">
-              {activePeriod.data.map((report) => (
-                <tr key={report.id} className="hover:bg-gray-50/50 transition-colors">
-                  {/* Tanggal & Waktu */}
-                  <td className="px-5 py-4 border-r-2 border-gray-100 text-center">
-                    <div className="font-black text-black">{report.tanggal}</div>
-                    <div className="text-gray-400 font-bold text-[9px] mt-0.5">{report.waktu}</div>
-                  </td>
-                  {/* Nama Rider */}
-                  <td className="px-5 py-4 border-r-2 border-gray-100 text-left">
-                    <div className="font-black text-black">{report.rider}</div>
-                    <div className="text-gray-400 font-bold text-[9px] mt-0.5">{report.unit}</div>
-                  </td>
-                  {/* Lokasi */}
-                  <td className="px-5 py-4 border-r-2 border-gray-100 text-left">
-                    <div className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-xs text-red-500 shrink-0">location_on</span>
-                      <span className="text-gray-700 truncate font-bold text-[11px]">{report.gps}</span>
-                    </div>
-                  </td>
-                  {/* Bawa */}
-                  <td className="px-3 py-4 border-r-2 border-gray-100 text-center text-gray-500 font-black">
-                    {report.bawa}
-                  </td>
-                  {/* Terjual */}
-                  <td className="px-3 py-4 border-r-2 border-gray-100 text-center font-black text-black">
-                    {report.terjual}
-                  </td>
-                  {/* Basi */}
-                  <td className={`px-3 py-4 border-r-2 border-gray-100 text-center font-black ${
-                    report.basi > 0 ? 'text-[#EF4444]' : 'text-gray-400'
-                  }`}>
-                    {report.basi}
-                  </td>
-                  {/* Rusak */}
-                  <td className={`px-3 py-4 border-r-2 border-gray-100 text-center font-black ${
-                    report.rusak > 0 ? 'text-[#EC4899]' : 'text-gray-400'
-                  }`}>
-                    {report.rusak}
-                  </td>
-                  {/* Metode */}
-                  <td className="px-4 py-4 border-r-2 border-gray-100 text-center">
-                    <span className="inline-block px-2.5 py-0.5 border border-black rounded text-[9px] font-black tracking-wider uppercase bg-[#F1F5F9] shadow-[1px_1px_0_0_#000]">
-                      {report.metode}
-                    </span>
-                  </td>
-                  {/* Total Setoran */}
-                  <td className="px-5 py-4 text-right font-black text-black text-sm">
-                    Rp {report.setoran.toLocaleString('id-ID')}
-                  </td>
+          {loading ? (
+            <div className="w-full py-20 flex flex-col items-center justify-center space-y-3">
+              <span className="material-symbols-outlined text-4xl text-[#0A1045] animate-spin">sync</span>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Memuat Laporan Rekap...</p>
+            </div>
+          ) : reportsData.length > 0 ? (
+            <table className="w-full border-collapse bg-white text-left text-xs font-bold text-black min-w-[900px]" style={{ contentVisibility: 'auto' }}>
+              <thead>
+                <tr className="bg-[#F1F5F9] border-b-[3px] border-black text-[10px] uppercase tracking-wider font-black text-slate-800">
+                  <th className="px-5 py-4 border-r-2 border-gray-200 text-center w-28">TANGGAL & WAKTU</th>
+                  <th className="px-5 py-4 border-r-2 border-gray-200 w-44">NAMA RIDER (UNIT)</th>
+                  <th className="px-5 py-4 border-r-2 border-gray-200">LOKASI LAST GPS</th>
+                  <th className="px-3 py-4 border-r-2 border-gray-200 text-center w-16">BAWA</th>
+                  <th className="px-3 py-4 border-r-2 border-gray-200 text-center w-16">TERJUAL</th>
+                  <th className="px-3 py-4 border-r-2 border-gray-200 text-center w-16">BASI</th>
+                  <th className="px-3 py-4 border-r-2 border-gray-200 text-center w-16">RUSAK</th>
+                  <th className="px-4 py-4 border-r-2 border-gray-200 text-center w-24">METODE</th>
+                  <th className="px-5 py-4 text-right w-36">TOTAL SETORAN</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y-2 divide-gray-100">
+                {reportsData.map((report) => (
+                  <tr key={report.id} className="hover:bg-gray-50/50 transition-colors">
+                    {/* Tanggal & Waktu */}
+                    <td className="px-5 py-4 border-r-2 border-gray-100 text-center">
+                      <div className="font-black text-black">{report.tanggal}</div>
+                      <div className="text-gray-400 font-bold text-[9px] mt-0.5">{report.waktu}</div>
+                    </td>
+                    {/* Nama Rider */}
+                    <td className="px-5 py-4 border-r-2 border-gray-100 text-left">
+                      <div className="font-black text-black">{report.rider}</div>
+                      <div className="text-gray-400 font-bold text-[9px] mt-0.5">{report.unit}</div>
+                    </td>
+                    {/* Lokasi */}
+                    <td className="px-5 py-4 border-r-2 border-gray-100 text-left">
+                      <div className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs text-red-500 shrink-0">location_on</span>
+                        <span className="text-gray-700 truncate font-bold text-[11px]">{report.gps}</span>
+                      </div>
+                    </td>
+                    {/* Bawa */}
+                    <td className="px-3 py-4 border-r-2 border-gray-100 text-center text-gray-500 font-black">
+                      {report.bawa}
+                    </td>
+                    {/* Terjual */}
+                    <td className="px-3 py-4 border-r-2 border-gray-100 text-center font-black text-black">
+                      {report.terjual}
+                    </td>
+                    {/* Basi */}
+                    <td className={`px-3 py-4 border-r-2 border-gray-100 text-center font-black ${
+                      report.basi > 0 ? 'text-[#EF4444]' : 'text-gray-400'
+                    }`}>
+                      {report.basi}
+                    </td>
+                    {/* Rusak */}
+                    <td className={`px-3 py-4 border-r-2 border-gray-100 text-center font-black ${
+                      report.rusak > 0 ? 'text-[#EC4899]' : 'text-gray-400'
+                    }`}>
+                      {report.rusak}
+                    </td>
+                    {/* Metode */}
+                    <td className="px-4 py-4 border-r-2 border-gray-100 text-center">
+                      <span className="inline-block px-2.5 py-0.5 border border-black rounded text-[9px] font-black tracking-wider uppercase bg-[#F1F5F9] shadow-[1px_1px_0_0_#000]">
+                        {report.metode}
+                      </span>
+                    </td>
+                    {/* Total Setoran */}
+                    <td className="px-5 py-4 text-right font-black text-black text-sm">
+                      Rp {report.setoran.toLocaleString('id-ID')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="w-full py-16 text-center text-gray-400 font-black text-xs uppercase tracking-wider">
+              Tidak ada data laporan pada periode {selectedMonth} {selectedYear}
+            </div>
+          )}
         </div>
 
         {/* Footer info pagination */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-2">
-          <span className="text-xs text-gray-500 font-bold">
-            Showing 1-{activePeriod.data.length} of 142 reports
-          </span>
-          <div className="flex gap-2">
-            <button className="bg-white border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center hover:bg-gray-50 font-black text-sm cursor-pointer shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]">
-              &lt;
-            </button>
-            <button 
-              onClick={() => setCurrentPage(1)}
-              className={`border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center font-black text-xs cursor-pointer shadow-[2px_2px_0_0_#000] ${
-                currentPage === 1 ? 'bg-[#FACC15]' : 'bg-white hover:bg-gray-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]'
-              }`}
-            >
-              1
-            </button>
-            <button 
-              onClick={() => setCurrentPage(2)}
-              className={`border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center font-black text-xs cursor-pointer shadow-[2px_2px_0_0_#000] ${
-                currentPage === 2 ? 'bg-[#FACC15]' : 'bg-white hover:bg-gray-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]'
-              }`}
-            >
-              2
-            </button>
-            <button 
-              onClick={() => setCurrentPage(3)}
-              className={`border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center font-black text-xs cursor-pointer shadow-[2px_2px_0_0_#000] ${
-                currentPage === 3 ? 'bg-[#FACC15]' : 'bg-white hover:bg-gray-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]'
-              }`}
-            >
-              3
-            </button>
-            <button className="bg-white border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center hover:bg-gray-50 font-black text-sm cursor-pointer shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]">
-              &gt;
-            </button>
+        {!loading && reportsData.length > 0 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-2">
+            <span className="text-xs text-gray-500 font-bold">
+              Menampilkan {reportsData.length} laporan (Total {paginationInfo.total} entri)
+            </span>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="bg-white border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center hover:bg-gray-50 font-black text-sm disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]"
+              >
+                &lt;
+              </button>
+              
+              {Array.from({ length: paginationInfo.last_page }, (_, i) => i + 1).map((pageNum) => (
+                <button 
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center font-black text-xs cursor-pointer shadow-[2px_2px_0_0_#000] ${
+                    currentPage === pageNum ? 'bg-[#FACC15]' : 'bg-white hover:bg-gray-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+
+              <button 
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === paginationInfo.last_page}
+                className="bg-white border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center hover:bg-gray-50 font-black text-sm disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]"
+              >
+                &gt;
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
 

@@ -7,9 +7,13 @@ use App\Models\Menu;
 
 class MenuController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $menus = Menu::where('status_menu', 'Aktif')->get();
+        $query = Menu::query();
+        if ($request->query('all') !== 'true') {
+            $query->where('status_menu', 'Aktif');
+        }
+        $menus = $query->get();
 
         return response()->json([
             'success' => true,
@@ -41,10 +45,17 @@ class MenuController extends Controller
             'nama_menu' => 'required|string',
             'harga' => 'required|integer',
             'deskripsi' => 'nullable|string',
-            'gambar_menu' => 'nullable|string',
+            'gambar_menu' => 'nullable|image|max:2048',
             'kategori_menu' => 'required|in:Outlet,SOTR,Keduanya',
             'tag_menu' => 'nullable|in:New,Best Seller',
         ]);
+
+        if ($request->hasFile('gambar_menu')) {
+            $file = $request->file('gambar_menu');
+            $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '', $file->getClientOriginalName());
+            $gambarPath = $file->storeAs('menus', $fileName, 'public');
+            $validated['gambar_menu'] = $gambarPath;
+        }
 
         $menu = Menu::create($validated);
 
@@ -69,11 +80,22 @@ class MenuController extends Controller
             'nama_menu' => 'string',
             'harga' => 'integer',
             'deskripsi' => 'nullable|string',
-            'gambar_menu' => 'nullable|string',
+            'gambar_menu' => 'nullable|image|max:2048',
             'kategori_menu' => 'in:Outlet,SOTR,Keduanya',
             'tag_menu' => 'nullable|in:New,Best Seller',
             'status_menu' => 'in:Aktif,Nonaktif',
         ]);
+
+        if ($request->hasFile('gambar_menu')) {
+            $file = $request->file('gambar_menu');
+            $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '', $file->getClientOriginalName());
+            $gambarPath = $file->storeAs('menus', $fileName, 'public');
+            $validated['gambar_menu'] = $gambarPath;
+
+            if ($menu->gambar_menu) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($menu->gambar_menu);
+            }
+        }
 
         $menu->update($validated);
 

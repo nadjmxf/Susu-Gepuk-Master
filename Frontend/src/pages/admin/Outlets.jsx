@@ -1,138 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import outletService from '../../services/outletService';
+import menuService from '../../services/menuService';
+import announcementService from '../../services/announcementService';
+import riderService from '../../services/riderService';
 
 export default function Outlets() {
   // ----------------------------------------------------
-  // 1. DATA MOCK AWAL (STATE)
+  // 1. DATA STATE & CONFIGS
   // ----------------------------------------------------
+  const [loading, setLoading] = useState(true);
+  const [sliders, setSliders] = useState([]);
+  const [menus, setMenus] = useState([]);
+  const [fixedOutlets, setFixedOutlets] = useState([]);
+  const [sotrUnits, setSotrUnits] = useState([]);
+  const [ridersList, setRidersList] = useState([]);
 
-  // Slider Banner States
-  const [sliders, setSliders] = useState([
-    {
-      id: 1,
-      title: 'Promo Ramadhan Berkah',
-      status: true,
-      image: 'https://images.unsplash.com/photo-1543257580-7269da773bf5?auto=format&fit=crop&q=80&w=300'
-    },
-    {
-      id: 2,
-      title: 'Grand Opening Outlet Bekasi',
-      status: false,
-      image: 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?auto=format&fit=crop&q=80&w=300'
-    }
-  ]);
-
-  // Product Menu States
-  const [menus, setMenus] = useState([
-    {
-      id: 1,
-      nama: 'Susu Segar Original',
-      deskripsi: 'Varian Murni Tanpa Perisa',
-      harga: 10000,
-      foto: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=150',
-      kategori: ['Tetap', 'SOTR'],
-      label: 'BEST SELLER'
-    },
-    {
-      id: 2,
-      nama: 'Susu Cokelat Premium',
-      deskripsi: 'Kakao Belgia 70%',
-      harga: 12000,
-      foto: 'https://images.unsplash.com/photo-1563822249548-9a72b6353cd1?auto=format&fit=crop&q=80&w=150',
-      kategori: ['SOTR'],
-      label: 'BARU'
-    },
-    {
-      id: 3,
-      nama: 'Susu Matcha Latte',
-      deskripsi: 'Premium Uji Matcha Powder',
-      harga: 15000,
-      foto: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&q=80&w=150',
-      kategori: ['Tetap', 'SOTR'],
-      label: ''
-    }
-  ]);
-
-  // Outlet Tetap States
-  const [fixedOutlets, setFixedOutlets] = useState([
-    {
-      id: 1,
-      nama: 'Pasar Kebon Jeruk',
-      lokasi: 'Jl. Raya Kebon Jeruk No.12',
-      status_outlet: 'Aktif', // Toggle status
-      status_operasional: 'BUKA' // BUKA / TUTUP badge
-    },
-    {
-      id: 2,
-      nama: 'Cabang BSD Plaza',
-      lokasi: 'BSD Plaza, Sektor IV',
-      status_outlet: 'Aktif',
-      status_operasional: 'BUKA'
-    },
-    {
-      id: 3,
-      nama: 'Cabang Bintaro Xchange',
-      lokasi: 'Bintaro Jaya Xchange Mall',
-      status_outlet: 'Nonaktif',
-      status_operasional: 'TUTUP'
-    }
-  ]);
-
-  // SOTR (Mobile Outlet) States
-  const [sotrUnits, setSotrUnits] = useState([
-    {
-      id: 1,
-      unit: 'SOTR Unit-A1',
-      rider: 'Budi Santoso',
-      foto_rider: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100',
-      status_sotr: 'Aktif',
-      status_operasional: 'BUKA',
-      area: 'Marpoyan - Simpang Tiga'
-    },
-    {
-      id: 2,
-      unit: 'SOTR Unit-A3',
-      rider: 'Agus Prasetyo',
-      foto_rider: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100',
-      status_sotr: 'Aktif',
-      status_operasional: 'BUKA',
-      area: 'Panam'
-    },
-    {
-      id: 3,
-      unit: 'SOTR Unit-D1',
-      rider: 'Belum Ditugaskan',
-      foto_rider: '',
-      status_sotr: 'Aktif',
-      status_operasional: 'TUTUP',
-      area: 'Arifin Ahmad'
-    }
-  ]);
-
-  // Available Riders for Dropdowns
-  const ridersList = [
-    { nama: 'Budi Santoso', foto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100' },
-    { nama: 'Agus Prasetyo', foto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100' },
-    { nama: 'Ahmad Pratama', foto: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=100' },
-    { nama: 'Reza Wijaya', foto: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=100' }
-  ];
+  // File upload ref for menu image
+  const fileInputRef = useRef(null);
+  const [menuImageFile, setMenuImageFile] = useState(null);
 
   // ----------------------------------------------------
-  // 2. SEARCH & FILTERING STATE
+  // SEARCH & FILTERING STATE
   // ----------------------------------------------------
   const [productSearch, setProductSearch] = useState('');
-  const [productCategory, setProductCategory] = useState('Semua'); // Semua | Outlet Tetap | SOTR
+  const [productCategory, setProductCategory] = useState('Semua');
 
   // ----------------------------------------------------
-  // 3. CONFIRMATION POPUP STATES (Outlet Switch)
+  // CONFIRMATION POPUP STATES (Outlet Switch)
   // ----------------------------------------------------
   const [isConfirmStatusOpen, setIsConfirmStatusOpen] = useState(false);
   const [statusConfirmType, setStatusConfirmType] = useState('fixed'); // fixed | sotr
-  const [pendingConfirmItem, setPendingConfirmItem] = useState(null); // outlet object
-  const [pendingConfirmValue, setPendingConfirmValue] = useState(''); // Aktif | Nonaktif
+  const [pendingConfirmItem, setPendingConfirmItem] = useState(null);
+  const [pendingConfirmValue, setPendingConfirmValue] = useState('');
 
   // ----------------------------------------------------
-  // 4. ADD / EDIT FORM MODAL STATES
+  // ADD / EDIT FORM MODAL STATES
   // ----------------------------------------------------
   
   // Menu Modal Form
@@ -143,8 +46,8 @@ export default function Outlets() {
     nama: '',
     harga: 0,
     kategori: [], // Tetap, SOTR
-    label: '', // BEST SELLER, BARU, TERLARIS
-    foto: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=150',
+    label: '',
+    foto: '',
     deskripsi: ''
   });
 
@@ -155,8 +58,11 @@ export default function Outlets() {
   const [fixedFormData, setFixedFormData] = useState({
     nama: '',
     lokasi: '',
+    link_lokasi: '',
     status_outlet: 'Aktif',
-    status_operasional: 'BUKA'
+    status_operasional: 'BUKA',
+    latitude: 0.4578,
+    longitude: 101.4589
   });
 
   // SOTR Unit Modal Form
@@ -168,32 +74,144 @@ export default function Outlets() {
     rider: 'Belum Ditugaskan',
     area: 'Marpoyan - Simpang Tiga',
     status_sotr: 'Aktif',
-    status_operasional: 'BUKA'
+    status_operasional: 'BUKA',
+    latitude: 0.5074,
+    longitude: 101.4478
+  });
+
+  // Announcement Modal Form (New!)
+  const [isAnnModalOpen, setIsAnnModalOpen] = useState(false);
+  const [annEditMode, setAnnEditMode] = useState(false);
+  const [selectedAnnId, setSelectedAnnId] = useState(null);
+  const [annFormData, setAnnFormData] = useState({
+    judul: '',
+    isi: '',
+    status: 'Aktif',
+    tanggal_mulai: '',
+    tanggal_selesai: ''
   });
 
   // ----------------------------------------------------
-  // 5. EVENT HANDLERS
+  // DATA MAPPING HELPERS
+  // ----------------------------------------------------
+  const mapAnnouncementToSlide = (ann) => ({
+    id: ann.id_announcement,
+    title: ann.judul,
+    status: ann.status === 'Aktif',
+    image: 'https://images.unsplash.com/photo-1543257580-7269da773bf5?auto=format&fit=crop&q=80&w=300', // Neo Brutalist style mockup cover
+    isi: ann.isi
+  });
+
+  const mapMenuToFrontend = (item) => ({
+    id: item.id_menu,
+    nama: item.nama_menu,
+    deskripsi: item.deskripsi || '',
+    harga: item.harga,
+    foto: item.gambar_menu ? (item.gambar_menu.startsWith('http') ? item.gambar_menu : `http://localhost:8000/storage/${item.gambar_menu}`) : 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=150',
+    kategori: item.kategori_menu === 'Keduanya' ? ['Tetap', 'SOTR'] : (item.kategori_menu === 'Outlet' ? ['Tetap'] : ['SOTR']),
+    label: item.tag_menu === 'New' ? 'BARU' : (item.tag_menu === 'Best Seller' ? 'BEST SELLER' : '')
+  });
+
+  const mapKategoriMenuToDb = (kategoriFe) => {
+    const hasTetap = kategoriFe.includes('Tetap');
+    const hasSotr = kategoriFe.includes('SOTR');
+    if (hasTetap && hasSotr) return 'Keduanya';
+    if (hasTetap) return 'Outlet';
+    if (hasSotr) return 'SOTR';
+    return 'Outlet';
+  };
+
+  const mapTagToDb = (tagFe) => {
+    if (tagFe === 'BARU') return 'New';
+    if (tagFe === 'BEST SELLER') return 'Best Seller';
+    return null;
+  };
+
+  // ----------------------------------------------------
+  // FETCH & LOAD DATA
+  // ----------------------------------------------------
+  const loadData = async () => {
+    try {
+      // 1. Fetch announcements
+      const resAnn = await announcementService.getAllAnnouncements();
+      setSliders(resAnn.data.map(mapAnnouncementToSlide));
+
+      // 2. Fetch menus
+      const resMenu = await menuService.getAllMenus(true);
+      setMenus(resMenu.data.map(mapMenuToFrontend));
+
+      // 3. Fetch outlets
+      const resOutlet = await outletService.getAllOutlets();
+      const outlets = resOutlet.data;
+      
+      // Fixed Outlets
+      const fixed = outlets.filter(o => o.jenis_outlet === 'Outlet Tetap').map(o => ({
+        id: o.id_outlet,
+        nama: o.nama_outlet,
+        lokasi: o.keterangan_lokasi || '',
+        link_lokasi: o.link_lokasi || '',
+        status_outlet: o.status_operasional === 'Buka' ? 'Aktif' : 'Nonaktif',
+        status_operasional: o.status_operasional === 'Buka' ? 'BUKA' : 'TUTUP',
+        latitude: o.latitude ? parseFloat(o.latitude) : 0.4578,
+        longitude: o.longitude ? parseFloat(o.longitude) : 101.4589
+      }));
+      setFixedOutlets(fixed);
+
+      // SOTR Units
+      const sotr = outlets.filter(o => o.jenis_outlet === 'Outlet Bergerak').map(o => ({
+        id: o.id_outlet,
+        unit: o.nama_outlet,
+        rider: o.rider ? o.rider.nama_rider : 'Belum Ditugaskan',
+        foto_rider: o.rider && o.rider.foto_rider ? `http://localhost:8000/storage/${o.rider.foto_rider}` : '',
+        status_sotr: o.status_operasional === 'Buka' ? 'Aktif' : 'Nonaktif',
+        status_operasional: o.status_operasional === 'Buka' ? 'BUKA' : 'TUTUP',
+        area: o.area || '',
+        id_rider: o.id_rider,
+        latitude: o.latitude ? parseFloat(o.latitude) : 0.5074,
+        longitude: o.longitude ? parseFloat(o.longitude) : 101.4478
+      }));
+      setSotrUnits(sotr);
+
+      // 4. Fetch riders list
+      const resRiders = await riderService.getAllRiders();
+      setRidersList(resRiders.data);
+    } catch (error) {
+      console.error('Gagal mengambil data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // ----------------------------------------------------
+  // EVENT HANDLERS
   // ----------------------------------------------------
 
-  // Slider Toggle Status
-  const handleToggleSlider = (sliderId) => {
-    setSliders(prev => prev.map(s => s.id === sliderId ? { ...s, status: !s.status } : s));
+  // Slider Toggle Status (Active / Inactive)
+  const handleToggleSlider = async (sliderId) => {
+    const slide = sliders.find(s => s.id === sliderId);
+    if (!slide) return;
+    const targetStatus = slide.status ? 'Nonaktif' : 'Aktif';
+    try {
+      await announcementService.updateAnnouncement(sliderId, { status: targetStatus });
+      setSliders(prev => prev.map(s => s.id === sliderId ? { ...s, status: !s.status } : s));
+    } catch (error) {
+      alert('Gagal merubah status slide');
+    }
   };
 
   // Slider Deletion
-  const handleDeleteSlider = (sliderId) => {
-    setSliders(prev => prev.filter(s => s.id !== sliderId));
-  };
-
-  // Add new slider (Mock)
-  const handleAddSlider = () => {
-    const newSlider = {
-      id: Date.now(),
-      title: 'Promo Diskon Akhir Pekan',
-      status: true,
-      image: 'https://images.unsplash.com/photo-1563822249548-9a72b6353cd1?auto=format&fit=crop&q=80&w=300'
-    };
-    setSliders([...sliders, newSlider]);
+  const handleDeleteSlider = async (sliderId) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus pengumuman/slide ini?')) return;
+    try {
+      await announcementService.deleteAnnouncement(sliderId);
+      setSliders(prev => prev.filter(s => s.id !== sliderId));
+    } catch (error) {
+      alert('Gagal menghapus slide');
+    }
   };
 
   // Toggle Switch for Outlet Status (Fixed & SOTR) - Triggers Confirmation Pop-up
@@ -207,89 +225,114 @@ export default function Outlets() {
   };
 
   // Confirmed Status Change
-  const handleConfirmStatusChange = () => {
+  const handleConfirmStatusChange = async () => {
     if (!pendingConfirmItem) return;
 
-    if (statusConfirmType === 'fixed') {
-      setFixedOutlets(prev => prev.map(o => {
-        if (o.id === pendingConfirmItem.id) {
-          return {
-            ...o,
-            status_outlet: pendingConfirmValue,
-            status_operasional: pendingConfirmValue === 'Aktif' ? 'BUKA' : 'TUTUP'
-          };
-        }
-        return o;
-      }));
-    } else {
-      setSotrUnits(prev => prev.map(u => {
-        if (u.id === pendingConfirmItem.id) {
-          return {
-            ...u,
-            status_sotr: pendingConfirmValue,
-            status_operasional: pendingConfirmValue === 'Aktif' ? 'BUKA' : 'TUTUP',
-            // If deactivated, reset rider
-            rider: pendingConfirmValue === 'Nonaktif' ? 'Belum Ditugaskan' : u.rider,
-            foto_rider: pendingConfirmValue === 'Nonaktif' ? '' : u.foto_rider
-          };
-        }
-        return u;
-      }));
+    try {
+      const targetOperasional = pendingConfirmValue === 'Aktif' ? 'Buka' : 'Tutup';
+      
+      const payload = {
+        status_operasional: targetOperasional
+      };
+
+      if (statusConfirmType === 'sotr' && pendingConfirmValue === 'Nonaktif') {
+        payload.id_rider = null;
+      }
+
+      await outletService.updateOutlet(pendingConfirmItem.id, payload);
+      setIsConfirmStatusOpen(false);
+      setPendingConfirmItem(null);
+      await loadData();
+    } catch (error) {
+      alert('Gagal menyimpan perubahan status outlet');
     }
-    setIsConfirmStatusOpen(false);
-    setPendingConfirmItem(null);
   };
 
-  // delete operations
-  const handleDeleteProduct = (id) => {
-    setMenus(prev => prev.filter(m => m.id !== id));
+  // Delete operations
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus produk ini secara permanen?')) return;
+    try {
+      await menuService.deleteMenu(id);
+      setMenus(prev => prev.filter(m => m.id !== id));
+    } catch (error) {
+      alert('Gagal menghapus produk');
+    }
   };
 
-  const handleDeleteFixedOutlet = (id) => {
-    setFixedOutlets(prev => prev.filter(o => o.id !== id));
+  const handleDeleteFixedOutlet = async (id) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus outlet tetap ini?')) return;
+    try {
+      await outletService.deleteOutlet(id);
+      setFixedOutlets(prev => prev.filter(o => o.id !== id));
+    } catch (error) {
+      alert('Gagal menghapus outlet tetap');
+    }
   };
 
-  const handleDeleteSotrUnit = (id) => {
-    setSotrUnits(prev => prev.filter(u => u.id !== id));
+  const handleDeleteSotrUnit = async (id) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus unit SOTR ini?')) return;
+    try {
+      await outletService.deleteOutlet(id);
+      setSotrUnits(prev => prev.filter(u => u.id !== id));
+    } catch (error) {
+      alert('Gagal menghapus unit SOTR');
+    }
   };
 
   // ----------------------------------------------------
-  // 6. FORM SAVE ACTION HANDLERS
+  // FORM SAVE ACTION HANDLERS
   // ----------------------------------------------------
 
   // Save Menu
-  const handleSaveMenu = (e) => {
+  const handleSaveMenu = async (e) => {
     e.preventDefault();
     if (!menuFormData.nama.trim()) return;
 
-    if (menuEditMode) {
-      setMenus(prev => prev.map(m => m.id === selectedMenuId ? { ...m, ...menuFormData } : m));
-    } else {
-      const newMenu = {
-        id: Date.now(),
-        ...menuFormData
-      };
-      setMenus([...menus, newMenu]);
+    try {
+      const formData = new FormData();
+      formData.append('id_admin', 1); // Seeded default admin
+      formData.append('nama_menu', menuFormData.nama);
+      formData.append('harga', menuFormData.harga);
+      formData.append('deskripsi', menuFormData.deskripsi || '');
+      formData.append('kategori_menu', mapKategoriMenuToDb(menuFormData.kategori));
+      if (menuFormData.label) {
+        formData.append('tag_menu', mapTagToDb(menuFormData.label));
+      }
+      if (menuImageFile) {
+        formData.append('gambar_menu', menuImageFile);
+      }
+
+      if (menuEditMode) {
+        await menuService.updateMenu(selectedMenuId, formData);
+      } else {
+        await menuService.createMenu(formData);
+      }
+      setIsMenuModalOpen(false);
+      setMenuImageFile(null);
+      await loadData();
+    } catch (error) {
+      alert(error.message || 'Gagal menyimpan menu produk');
     }
-    setIsMenuModalOpen(false);
   };
 
   // Open Menu Add/Edit Modals
   const openAddMenu = () => {
     setMenuEditMode(false);
+    setMenuImageFile(null);
     setMenuFormData({
       nama: '',
       harga: 0,
       kategori: ['Tetap'],
-      label: 'BEST SELLER',
+      label: '',
       foto: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=150',
-      deskripsi: 'Varian Susu Gepuk Segar'
+      deskripsi: ''
     });
     setIsMenuModalOpen(true);
   };
 
   const openEditMenu = (menu) => {
     setMenuEditMode(true);
+    setMenuImageFile(null);
     setSelectedMenuId(menu.id);
     setMenuFormData({
       nama: menu.nama,
@@ -302,21 +345,41 @@ export default function Outlets() {
     setIsMenuModalOpen(true);
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setMenuImageFile(file);
+      setMenuFormData(prev => ({ ...prev, foto: URL.createObjectURL(file) }));
+    }
+  };
+
   // Save Fixed Outlet
-  const handleSaveFixedOutlet = (e) => {
+  const handleSaveFixedOutlet = async (e) => {
     e.preventDefault();
     if (!fixedFormData.nama.trim()) return;
 
-    if (fixedEditMode) {
-      setFixedOutlets(prev => prev.map(o => o.id === selectedFixedId ? { ...o, ...fixedFormData } : o));
-    } else {
-      const newOutlet = {
-        id: Date.now(),
-        ...fixedFormData
-      };
-      setFixedOutlets([...fixedOutlets, newOutlet]);
+    const payload = {
+      id_admin: 1,
+      nama_outlet: fixedFormData.nama,
+      keterangan_lokasi: fixedFormData.lokasi,
+      link_lokasi: fixedFormData.link_lokasi,
+      jenis_outlet: 'Outlet Tetap',
+      status_operasional: fixedFormData.status_outlet === 'Aktif' ? 'Buka' : 'Tutup',
+      latitude: fixedFormData.latitude || 0.4578,
+      longitude: fixedFormData.longitude || 101.4589
+    };
+
+    try {
+      if (fixedEditMode) {
+        await outletService.updateOutlet(selectedFixedId, payload);
+      } else {
+        await outletService.createOutlet(payload);
+      }
+      setIsFixedModalOpen(false);
+      await loadData();
+    } catch (error) {
+      alert('Gagal menyimpan outlet tetap');
     }
-    setIsFixedModalOpen(false);
   };
 
   // Open Fixed Outlet Add/Edit Modals
@@ -325,8 +388,11 @@ export default function Outlets() {
     setFixedFormData({
       nama: '',
       lokasi: '',
+      link_lokasi: '',
       status_outlet: 'Aktif',
-      status_operasional: 'BUKA'
+      status_operasional: 'BUKA',
+      latitude: 0.4578,
+      longitude: 101.4589
     });
     setIsFixedModalOpen(true);
   };
@@ -337,34 +403,45 @@ export default function Outlets() {
     setFixedFormData({
       nama: outlet.nama,
       lokasi: outlet.lokasi,
+      link_lokasi: outlet.link_lokasi,
       status_outlet: outlet.status_outlet,
-      status_operasional: outlet.status_operasional
+      status_operasional: outlet.status_operasional,
+      latitude: outlet.latitude || 0.4578,
+      longitude: outlet.longitude || 101.4589
     });
     setIsFixedModalOpen(true);
   };
 
   // Save SOTR Unit
-  const handleSaveSotrUnit = (e) => {
+  const handleSaveSotrUnit = async (e) => {
     e.preventDefault();
     if (!sotrFormData.unit.trim()) return;
 
-    const matchedRider = ridersList.find(r => r.nama === sotrFormData.rider);
+    const matchedRiderObj = ridersList.find(r => r.nama_rider === sotrFormData.rider);
+    const id_rider = matchedRiderObj ? matchedRiderObj.id_rider : null;
 
-    if (sotrEditMode) {
-      setSotrUnits(prev => prev.map(u => u.id === selectedSotrId ? {
-        ...u,
-        ...sotrFormData,
-        foto_rider: matchedRider ? matchedRider.foto : ''
-      } : u));
-    } else {
-      const newUnit = {
-        id: Date.now(),
-        ...sotrFormData,
-        foto_rider: matchedRider ? matchedRider.foto : ''
-      };
-      setSotrUnits([...sotrUnits, newUnit]);
+    const payload = {
+      id_admin: 1,
+      nama_outlet: sotrFormData.unit,
+      id_rider: id_rider,
+      area: sotrFormData.area,
+      jenis_outlet: 'Outlet Bergerak',
+      status_operasional: sotrFormData.status_sotr === 'Aktif' ? 'Buka' : 'Tutup',
+      latitude: sotrFormData.latitude || 0.5074,
+      longitude: sotrFormData.longitude || 101.4478
+    };
+
+    try {
+      if (sotrEditMode) {
+        await outletService.updateOutlet(selectedSotrId, payload);
+      } else {
+        await outletService.createOutlet(payload);
+      }
+      setIsSotrModalOpen(false);
+      await loadData();
+    } catch (error) {
+      alert('Gagal menyimpan unit SOTR');
     }
-    setIsSotrModalOpen(false);
   };
 
   // Open SOTR Add/Edit Modals
@@ -375,7 +452,9 @@ export default function Outlets() {
       rider: 'Belum Ditugaskan',
       area: 'Marpoyan - Simpang Tiga',
       status_sotr: 'Aktif',
-      status_operasional: 'BUKA'
+      status_operasional: 'BUKA',
+      latitude: 0.5074,
+      longitude: 101.4478
     });
     setIsSotrModalOpen(true);
   };
@@ -388,16 +467,71 @@ export default function Outlets() {
       rider: unit.rider,
       area: unit.area,
       status_sotr: unit.status_sotr,
-      status_operasional: unit.status_operasional
+      status_operasional: unit.status_operasional,
+      latitude: unit.latitude || 0.5074,
+      longitude: unit.longitude || 101.4478
     });
     setIsSotrModalOpen(true);
   };
 
+  // Save Announcement (New!)
+  const handleSaveAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!annFormData.judul.trim()) return;
+
+    const payload = {
+      id_admin: 1,
+      judul: annFormData.judul,
+      isi: annFormData.isi || '',
+      status: annFormData.status,
+      tanggal_mulai: annFormData.tanggal_mulai || null,
+      tanggal_selesai: annFormData.tanggal_selesai || null
+    };
+
+    try {
+      if (annEditMode) {
+        await announcementService.updateAnnouncement(selectedAnnId, payload);
+      } else {
+        await announcementService.createAnnouncement(payload);
+      }
+      setIsAnnModalOpen(false);
+      await loadData();
+    } catch (error) {
+      alert('Gagal menyimpan pengumuman');
+    }
+  };
+
+  const openAddAnn = () => {
+    setAnnEditMode(false);
+    setAnnFormData({
+      judul: '',
+      isi: '',
+      status: 'Aktif',
+      tanggal_mulai: '',
+      tanggal_selesai: ''
+    });
+    setIsAnnModalOpen(true);
+  };
+
+  const openEditAnn = (ann) => {
+    setAnnEditMode(true);
+    setSelectedAnnId(ann.id);
+    setAnnFormData({
+      judul: ann.title,
+      isi: ann.isi || '',
+      status: ann.status ? 'Aktif' : 'Nonaktif',
+      tanggal_mulai: '',
+      tanggal_selesai: ''
+    });
+    setIsAnnModalOpen(true);
+  };
+
   // ----------------------------------------------------
-  // 7. FILTER PRODUCTS LOGIC
+  // FILTER PRODUCTS LOGIC
   // ----------------------------------------------------
   const filteredProducts = menus.filter(product => {
-    const matchesSearch = product.nama.toLowerCase().includes(productSearch.toLowerCase());
+    const matchesSearch = product.nama.toLowerCase().includes(productSearch.toLowerCase()) || 
+                          product.deskripsi.toLowerCase().includes(productSearch.toLowerCase());
     
     if (productCategory === 'Semua') {
       return matchesSearch;
@@ -408,6 +542,15 @@ export default function Outlets() {
     }
     return matchesSearch;
   });
+
+  if (loading) {
+    return (
+      <div className="w-full h-96 flex flex-col items-center justify-center space-y-4">
+        <span className="material-symbols-outlined text-5xl text-[#0A1045] animate-spin">sync</span>
+        <div className="text-[#0A1045] font-black text-sm uppercase tracking-widest animate-pulse">Memuat Data Outlet...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full space-y-8 pb-10 text-left">
@@ -426,7 +569,10 @@ export default function Outlets() {
               Atur konten banner dan informasi terbaru untuk aplikasi pelanggan.
             </p>
           </div>
-          <button className="bg-[#FACC15] hover:bg-yellow-400 text-black border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all rounded-xl px-5 py-2.5 font-black text-xs uppercase flex items-center gap-2 cursor-pointer shrink-0">
+          <button 
+            onClick={openAddAnn}
+            className="bg-[#FACC15] hover:bg-yellow-400 text-black border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all rounded-xl px-5 py-2.5 font-black text-xs uppercase flex items-center gap-2 cursor-pointer shrink-0"
+          >
             <span className="material-symbols-outlined font-black text-sm">campaign</span>
             Unggah Pengumuman Baru
           </button>
@@ -475,24 +621,31 @@ export default function Outlets() {
                   </div>
 
                   {/* Banner Image Mock */}
-                  <div className="border-[3px] border-black rounded-xl w-full bg-gray-100 overflow-hidden shadow-[2px_2px_0_0_#000]" style={{ aspectRatio: '1/1' }}>
+                  <div className="border-[3px] border-black rounded-xl w-full bg-[#fdd835] overflow-hidden shadow-[2px_2px_0_0_#000] relative aspect-[3/4]" style={{ contentVisibility: 'auto' }}>
                     <img 
-                      src={slide.image}
+                      src="/announcement_bg.png"
                       alt={slide.title}
-                      className="w-full h-full object-cover block"
-                      style={{ objectFit: 'cover' }}
+                      className="w-full h-full object-cover block opacity-95"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                    <div className="absolute bottom-4 left-4 right-4 z-10 text-white">
+                      <p className="text-[10px] text-[#FACC15] font-black uppercase tracking-wider mb-1">Pengumuman</p>
+                      <h4 className="text-xs font-black leading-snug drop-shadow-md">{slide.title}</h4>
+                    </div>
                   </div>
                 </div>
 
                 {/* Info and delete action */}
                 <div className="bg-gray-50 border-t-2 border-black px-3 py-2.5 flex justify-between items-center">
-                  <span className="text-xs font-black text-black truncate pr-2">
-                    {slide.title}
-                  </span>
+                  <button 
+                    onClick={() => openEditAnn(slide)}
+                    className="text-xs font-black text-black hover:text-[#3B82F6] truncate pr-2 text-left"
+                  >
+                    ✏ {slide.title}
+                  </button>
                   <button 
                     onClick={() => handleDeleteSlider(slide.id)}
-                    className="text-[#EF4444] hover:text-red-700 cursor-pointer flex items-center"
+                    className="text-[#EF4444] hover:text-red-700 cursor-pointer flex items-center shrink-0"
                     title="Hapus Slide"
                   >
                     <span className="material-symbols-outlined text-sm font-black">delete</span>
@@ -504,14 +657,14 @@ export default function Outlets() {
 
             {/* Dotted Add Banner Card */}
             <button 
-              onClick={handleAddSlider}
+              onClick={openAddAnn}
               className="border-[3px] border-dashed border-white rounded-2xl bg-white/5 hover:bg-white/10 transition-colors flex flex-col items-center justify-center p-6 space-y-2 group cursor-pointer w-full h-full min-h-[220px]"
             >
               <div className="w-12 h-12 rounded-full bg-[#FACC15] border-2 border-black shadow-[3px_3px_0_0_#000] flex items-center justify-center group-hover:scale-105 transition-transform">
                 <span className="material-symbols-outlined text-black font-black text-xl">add</span>
               </div>
               <span className="text-xs font-black text-white uppercase tracking-wider">
-                Tambah Slide Baru
+                Tambah Slide / Pengumuman
               </span>
             </button>
           </div>
@@ -547,7 +700,7 @@ export default function Outlets() {
             </span>
             <input
               type="text"
-              placeholder="Cari nama produk atau kategori..."
+              placeholder="Cari nama produk..."
               value={productSearch}
               onChange={(e) => setProductSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white border-[3px] border-black rounded-xl focus:outline-none focus:ring-0 font-bold text-black text-xs shadow-[2px_2px_0_0_#000]"
@@ -686,12 +839,6 @@ export default function Outlets() {
             <button className="bg-[#FACC15] border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center font-black text-xs cursor-pointer shadow-[2px_2px_0_0_#000]">
               1
             </button>
-            <button className="bg-white border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center font-black text-xs hover:bg-gray-50 cursor-pointer shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]">
-              2
-            </button>
-            <button className="bg-white border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center font-black text-xs hover:bg-gray-50 cursor-pointer shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]">
-              3
-            </button>
             <button className="bg-white border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center hover:bg-gray-50 font-black text-sm cursor-pointer shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]">
               &gt;
             </button>
@@ -727,7 +874,7 @@ export default function Outlets() {
               <tr className="bg-[#F1F5F9] border-b-[3px] border-black text-[10px] uppercase tracking-wider font-black">
                 <th className="px-4 py-3 border-r-2 border-gray-200 text-center w-12">NO</th>
                 <th className="px-6 py-3 border-r-2 border-gray-200">NAMA OUTLET</th>
-                <th className="px-4 py-3 border-r-2 border-gray-200">LOKASI</th>
+                <th className="px-4 py-3 border-r-2 border-gray-200">DETAIL LOKASI</th>
                 <th className="px-4 py-3 border-r-2 border-gray-200 text-center">STATUS OUTLET</th>
                 <th className="px-4 py-3 border-r-2 border-gray-200 text-center">STATUS OPERASIONAL</th>
                 <th className="px-4 py-3 text-center">AKSI</th>
@@ -747,16 +894,19 @@ export default function Outlets() {
                       {outlet.nama}
                     </td>
                     {/* Lokasi */}
-                    <td className="px-4 py-3 border-r-2 border-gray-100">
-                      <a 
-                        href={`https://maps.google.com/?q=${encodeURIComponent(outlet.nama)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[#3B82F6] hover:underline flex items-center font-black gap-1 uppercase text-[10px]"
-                      >
-                        <span className="material-symbols-outlined text-xs">location_on</span>
-                        Google Maps
-                      </a>
+                    <td className="px-4 py-3 border-r-2 border-gray-100 text-left font-bold text-[11px]">
+                      <div className="text-black mb-1">{outlet.lokasi || 'Pekanbaru'}</div>
+                      {outlet.link_lokasi && (
+                        <a 
+                          href={outlet.link_lokasi}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[#3B82F6] hover:underline inline-flex items-center font-black gap-1 uppercase text-[10px]"
+                        >
+                          <span className="material-symbols-outlined text-xs">location_on</span>
+                          Google Maps
+                        </a>
+                      )}
                     </td>
                     {/* Status Outlet Toggle */}
                     <td className="px-4 py-3 border-r-2 border-gray-100 text-center">
@@ -819,7 +969,7 @@ export default function Outlets() {
             <button className="bg-[#FACC15] border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center font-black text-xs cursor-pointer shadow-[2px_2px_0_0_#000]">
               1
             </button>
-            <button className="bg-white border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center font-black text-xs hover:bg-gray-50 cursor-pointer shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]">
+            <button className="bg-white border-2 border-black rounded-lg w-8 h-8 flex items-center justify-center hover:bg-gray-50 font-black text-sm cursor-pointer shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]">
               &gt;
             </button>
           </div>
@@ -872,14 +1022,19 @@ export default function Outlets() {
                     </td>
                     {/* Unit SOTR */}
                     <td className="px-6 py-3 border-r-2 border-gray-100 text-left font-black text-sm text-black">
-                      {unit.unit}
+                      <div>{unit.unit}</div>
+                      <div className="text-[10px] text-gray-400 font-bold">Area: {unit.area}</div>
                     </td>
                     {/* Rider Ditugaskan */}
                     <td className="px-6 py-3 border-r-2 border-gray-100 text-left">
                       {hasRider ? (
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full border-2 border-black overflow-hidden shadow-[1px_1px_0_0_#000]">
-                            <img src={unit.foto_rider} alt={unit.rider} className="w-full h-full object-cover" />
+                          <div className="w-6 h-6 rounded-full border border-black overflow-hidden shadow-[1px_1px_0_0_#000] bg-gray-200 shrink-0">
+                            {unit.foto_rider ? (
+                              <img src={unit.foto_rider} alt={unit.rider} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="material-symbols-outlined text-xs flex items-center justify-center h-full">person</span>
+                            )}
                           </div>
                           <span className="text-black font-black text-xs leading-none">{unit.rider}</span>
                         </div>
@@ -1057,7 +1212,7 @@ export default function Outlets() {
             {/* Header */}
             <div className="bg-[#EEF2FF] border-b-[3px] border-black px-6 py-4 flex items-center justify-between shrink-0">
               <span className="text-[#0A1045] font-black text-sm uppercase tracking-widest">
-                {menuEditMode ? 'EDIT MENU BARU' : 'TAMBAH MENU BARU'}
+                {menuEditMode ? 'EDIT DATA PRODUK' : 'TAMBAH PRODUK BARU'}
               </span>
               <button 
                 onClick={() => setIsMenuModalOpen(false)}
@@ -1070,21 +1225,29 @@ export default function Outlets() {
             {/* Form */}
             <form onSubmit={handleSaveMenu} className="flex flex-col flex-1 text-left">
               <div className="p-6 space-y-5 flex-1 overflow-y-auto">
+                
                 {/* Upload Photo Section */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest block">
                     UNGGAH FOTO PRODUK
                   </label>
                   <div className="flex items-center gap-4">
-                    {menuEditMode && menuFormData.foto ? (
+                    {menuFormData.foto ? (
                       <div className="relative w-24 h-24 shrink-0 border-[3px] border-black rounded-lg overflow-hidden shadow-[2px_2px_0_0_#000]">
                         <img src={menuFormData.foto} alt="Preview" className="w-full h-full object-cover" />
-                        <button type="button" className="absolute -bottom-1 -right-1 bg-[#FACC15] border-2 border-black rounded-md p-1 cursor-pointer flex items-center justify-center shadow-[1px_1px_0_0_#000]">
+                        <button 
+                          type="button" 
+                          onClick={() => fileInputRef.current.click()}
+                          className="absolute -bottom-1 -right-1 bg-[#FACC15] border-2 border-black rounded-md p-1 cursor-pointer flex items-center justify-center shadow-[1px_1px_0_0_#000]"
+                        >
                           <span className="material-symbols-outlined text-[10px] font-black">edit</span>
                         </button>
                       </div>
                     ) : (
-                      <div className="border-2 border-dashed border-black rounded-xl w-24 h-24 flex flex-col items-center justify-center bg-white cursor-pointer hover:bg-gray-50 transition-colors">
+                      <div 
+                        onClick={() => fileInputRef.current.click()}
+                        className="border-2 border-dashed border-black rounded-xl w-24 h-24 flex flex-col items-center justify-center bg-white cursor-pointer hover:bg-gray-50 transition-colors shadow-[2px_2px_0_0_#000]"
+                      >
                         <span className="material-symbols-outlined text-black font-black text-xl">cloud_upload</span>
                         <span className="text-[8px] font-black text-black uppercase tracking-widest mt-1">Unggah Foto</span>
                       </div>
@@ -1092,6 +1255,13 @@ export default function Outlets() {
                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-normal">
                       Format JPG/PNG, Maks 2MB
                     </span>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleFileChange}
+                    />
                   </div>
                 </div>
 
@@ -1157,6 +1327,20 @@ export default function Outlets() {
                   </div>
                 </div>
 
+                {/* Deskripsi */}
+                <div>
+                  <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest mb-2 block">
+                    DESKRIPSI PRODUK
+                  </label>
+                  <textarea
+                    placeholder="Tulis deskripsi atau varian produk..."
+                    value={menuFormData.deskripsi}
+                    onChange={(e) => setMenuFormData({ ...menuFormData, deskripsi: e.target.value })}
+                    rows={2}
+                    className="w-full px-4 py-2 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none focus:ring-0 placeholder:text-gray-400 shadow-[2px_2px_0_0_#000]"
+                  />
+                </div>
+
                 {/* Label Menu Selector */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest block">
@@ -1181,9 +1365,6 @@ export default function Outlets() {
                         </button>
                       );
                     })}
-                    <button type="button" className="border-2 border-dashed border-gray-400 px-3 py-1.5 rounded-lg text-gray-400 font-black text-[9px] uppercase hover:bg-gray-50 cursor-pointer">
-                      + Add Label
-                    </button>
                   </div>
                 </div>
 
@@ -1244,7 +1425,7 @@ export default function Outlets() {
                   <div className="relative flex items-center">
                     <input
                       type="text"
-                      placeholder="Contoh: Susu Gepuk - Antapani"
+                      placeholder="Contoh: Susu Gepuk - Outlet Panam"
                       value={fixedFormData.nama}
                       onChange={(e) => setFixedFormData({ ...fixedFormData, nama: e.target.value })}
                       className="w-full pl-12 pr-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none focus:ring-0 placeholder:text-gray-400 shadow-[2px_2px_0_0_#000]"
@@ -1259,12 +1440,12 @@ export default function Outlets() {
                 {/* Detail Lokasi */}
                 <div>
                   <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest mb-2 block">
-                    DETAIL LOKASI
+                    DETAIL LOKASI / ALAMAT / JAM OPERASIONAL
                   </label>
                   <div className="relative flex items-center">
                     <input
                       type="text"
-                      placeholder="Jl. Air Dingin No.17 Dekat Kampus UIR"
+                      placeholder="Contoh: Jalan Air Dingin No.17 (08:00 - 22:00)"
                       value={fixedFormData.lokasi}
                       onChange={(e) => setFixedFormData({ ...fixedFormData, lokasi: e.target.value })}
                       className="w-full pl-12 pr-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none focus:ring-0 placeholder:text-gray-400 shadow-[2px_2px_0_0_#000]"
@@ -1285,6 +1466,8 @@ export default function Outlets() {
                     <input
                       type="text"
                       placeholder="https://maps.app.goo.gl/..."
+                      value={fixedFormData.link_lokasi}
+                      onChange={(e) => setFixedFormData({ ...fixedFormData, link_lokasi: e.target.value })}
                       className="w-full pl-12 pr-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none focus:ring-0 placeholder:text-gray-400 shadow-[2px_2px_0_0_#000]"
                     />
                     <span className="material-symbols-outlined absolute left-4 text-gray-500 font-bold text-sm">
@@ -1293,10 +1476,40 @@ export default function Outlets() {
                   </div>
                 </div>
 
+                {/* Coordinates */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest mb-2 block">
+                      LATITUDE
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="0.4578"
+                      value={fixedFormData.latitude}
+                      onChange={(e) => setFixedFormData({ ...fixedFormData, latitude: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none shadow-[2px_2px_0_0_#000]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest mb-2 block">
+                      LONGITUDE
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="101.4589"
+                      value={fixedFormData.longitude}
+                      onChange={(e) => setFixedFormData({ ...fixedFormData, longitude: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none shadow-[2px_2px_0_0_#000]"
+                    />
+                  </div>
+                </div>
+
                 {/* Status Awal */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest block">
-                    STATUS AWAL
+                    STATUS OPERASIONAL AWAL
                   </label>
                   <div className="bg-[#F1F5F9] border-2 border-dashed border-gray-300 rounded-xl p-3 flex gap-6 items-center">
                     <label className="flex items-center gap-2 cursor-pointer font-black text-xs text-[#10B981]">
@@ -1307,7 +1520,7 @@ export default function Outlets() {
                         onChange={() => setFixedFormData({ ...fixedFormData, status_outlet: 'Aktif', status_operasional: 'BUKA' })}
                         className="w-4 h-4 border-2 border-black focus:ring-0 text-[#10B981]"
                       />
-                      <span>● AKTIF</span>
+                      <span>● BUKA</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer font-black text-xs text-[#EF4444]">
                       <input 
@@ -1317,7 +1530,7 @@ export default function Outlets() {
                         onChange={() => setFixedFormData({ ...fixedFormData, status_outlet: 'Nonaktif', status_operasional: 'TUTUP' })}
                         className="w-4 h-4 border-2 border-black focus:ring-0 text-[#EF4444]"
                       />
-                      <span>● NON-AKTIF</span>
+                      <span>● TUTUP</span>
                     </label>
                   </div>
                 </div>
@@ -1371,14 +1584,15 @@ export default function Outlets() {
             {/* Form */}
             <form onSubmit={handleSaveSotrUnit} className="flex flex-col flex-1 text-left">
               <div className="p-6 space-y-5 flex-1 overflow-y-auto">
+                
                 {/* Nama Unit SOTR */}
                 <div>
                   <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest mb-2 block">
-                    NAMA UNIT SOTR
+                    NAMA UNIT SOTR / OUTLET
                   </label>
                   <input
                     type="text"
-                    placeholder="Contoh: SOTR Unit-A4"
+                    placeholder="Contoh: Rider Budi (SOTR)"
                     value={sotrFormData.unit}
                     onChange={(e) => setSotrFormData({ ...sotrFormData, unit: e.target.value })}
                     className="w-full px-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none focus:ring-0 placeholder:text-gray-400 shadow-[2px_2px_0_0_#000]"
@@ -1398,7 +1612,7 @@ export default function Outlets() {
                   >
                     <option value="Belum Ditugaskan">Belum Ditugaskan</option>
                     {ridersList.map(r => (
-                      <option key={r.nama} value={r.nama}>{r.nama}</option>
+                      <option key={r.id_rider} value={r.nama_rider}>{r.nama_rider}</option>
                     ))}
                   </select>
                 </div>
@@ -1406,12 +1620,12 @@ export default function Outlets() {
                 {/* Area Input */}
                 <div>
                   <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest mb-2 block">
-                    AREA
+                    AREA WILAYAH BERJUALAN
                   </label>
                   <div className="relative flex items-center">
                     <input
                       type="text"
-                      placeholder="Marpoyan - Simpang Tiga"
+                      placeholder="Marpoyan / Panam / Harapan Raya"
                       value={sotrFormData.area}
                       onChange={(e) => setSotrFormData({ ...sotrFormData, area: e.target.value })}
                       className="w-full pl-12 pr-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none focus:ring-0 placeholder:text-gray-400 shadow-[2px_2px_0_0_#000]"
@@ -1423,11 +1637,41 @@ export default function Outlets() {
                   </div>
                 </div>
 
+                {/* Coordinates */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest mb-2 block">
+                      LATITUDE UTAMA
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="0.5074"
+                      value={sotrFormData.latitude}
+                      onChange={(e) => setSotrFormData({ ...sotrFormData, latitude: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none shadow-[2px_2px_0_0_#000]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest mb-2 block">
+                      LONGITUDE UTAMA
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="101.4478"
+                      value={sotrFormData.longitude}
+                      onChange={(e) => setSotrFormData({ ...sotrFormData, longitude: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none shadow-[2px_2px_0_0_#000]"
+                    />
+                  </div>
+                </div>
+
                 {/* Status Operasional Switch */}
                 <div className="bg-[#F1F5F9] border-2 border-gray-100 rounded-xl p-4 flex justify-between items-center shadow-[1px_1px_0_0_#000]">
                   <div className="space-y-1">
                     <span className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest block">
-                      STATUS OPERASIONAL
+                      STATUS OPERASIONAL AWAL
                     </span>
                     <span className="text-[9px] text-gray-400 font-bold">Status awal unit saat didaftarkan</span>
                   </div>
@@ -1446,7 +1690,7 @@ export default function Outlets() {
                       <div className="w-3.5 h-3.5 rounded-full bg-white border-2 border-black"></div>
                     </button>
                     <span className="text-[10px] font-black text-gray-700 font-mono">
-                      {sotrFormData.status_sotr === 'Aktif' ? 'AKTIF' : 'NON-AKTIF'}
+                      {sotrFormData.status_sotr === 'Aktif' ? 'BUKA' : 'TUTUP'}
                     </span>
                   </div>
                 </div>
@@ -1458,6 +1702,114 @@ export default function Outlets() {
                 <button
                   type="button"
                   onClick={() => setIsSotrModalOpen(false)}
+                  className="bg-white hover:bg-gray-100 text-black border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all rounded-xl px-6 py-2.5 font-black text-xs uppercase cursor-pointer"
+                >
+                  BATAL
+                </button>
+                <button
+                  type="submit"
+                  className="bg-[#FACC15] hover:bg-yellow-400 text-black border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all rounded-xl px-6 py-2.5 font-black text-xs uppercase flex items-center gap-2 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined font-black text-[16px]">save</span>
+                  SIMPAN DATA
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ----------------------------------------------------
+          5. MODAL TAMBAH / EDIT ANNOUNCEMENT (SLIDE BANNER)
+          ---------------------------------------------------- */}
+      {isAnnModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white border-[3px] border-black rounded-2xl shadow-[8px_8px_0_0_#000] w-full max-w-lg overflow-hidden flex flex-col my-8">
+            
+            {/* Header */}
+            <div className="bg-[#EEF2FF] border-b-[3px] border-black px-6 py-4 flex items-center justify-between shrink-0">
+              <span className="text-[#0A1045] font-black text-sm uppercase tracking-widest">
+                {annEditMode ? 'EDIT DATA PENGUMUMAN' : 'TAMBAH PENGUMUMAN BARU'}
+              </span>
+              <button 
+                onClick={() => setIsAnnModalOpen(false)}
+                className="text-[#0A1045] hover:text-red-600 transition-colors cursor-pointer flex items-center"
+              >
+                <span className="material-symbols-outlined text-2xl font-black">close</span>
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveAnnouncement} className="flex flex-col flex-1 text-left">
+              <div className="p-6 space-y-5 flex-1 overflow-y-auto">
+                {/* Judul Pengumuman */}
+                <div>
+                  <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest mb-2 block">
+                    JUDUL PENGUMUMAN
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Promo Ramadhan Berkah"
+                    value={annFormData.judul}
+                    onChange={(e) => setAnnFormData({ ...annFormData, judul: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none focus:ring-0 placeholder:text-gray-400 shadow-[2px_2px_0_0_#000]"
+                    required
+                  />
+                </div>
+
+                {/* Isi Pengumuman */}
+                <div>
+                  <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest mb-2 block">
+                    KONTEN / ISI PENGUMUMAN
+                  </label>
+                  <textarea
+                    placeholder="Tulis detail pengumuman atau URL gambar background disini..."
+                    value={annFormData.isi}
+                    onChange={(e) => setAnnFormData({ ...annFormData, isi: e.target.value })}
+                    rows={4}
+                    className="w-full px-4 py-2.5 bg-white border-[3px] border-black rounded-xl text-black font-bold text-xs focus:outline-none focus:ring-0 placeholder:text-gray-400 shadow-[2px_2px_0_0_#000]"
+                    required
+                  />
+                </div>
+
+                {/* Status */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-[#0A1045] uppercase tracking-widest block">
+                    STATUS AKTIF
+                  </label>
+                  <div className="bg-[#F1F5F9] border-2 border-dashed border-gray-300 rounded-xl p-3 flex gap-6 items-center">
+                    <label className="flex items-center gap-2 cursor-pointer font-black text-xs text-[#10B981]">
+                      <input 
+                        type="radio"
+                        name="ann_status"
+                        checked={annFormData.status === 'Aktif'}
+                        onChange={() => setAnnFormData({ ...annFormData, status: 'Aktif' })}
+                        className="w-4 h-4 border-2 border-black focus:ring-0 text-[#10B981]"
+                      />
+                      <span>● AKTIF</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer font-black text-xs text-[#EF4444]">
+                      <input 
+                        type="radio"
+                        name="ann_status"
+                        checked={annFormData.status === 'Nonaktif'}
+                        onChange={() => setAnnFormData({ ...annFormData, status: 'Nonaktif' })}
+                        className="w-4 h-4 border-2 border-black focus:ring-0 text-[#EF4444]"
+                      />
+                      <span>● NON-AKTIF</span>
+                    </label>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Footer */}
+              <div className="bg-[#F1F5F9] border-t-2 border-black px-6 py-4 flex justify-end gap-4 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAnnModalOpen(false)}
                   className="bg-white hover:bg-gray-100 text-black border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all rounded-xl px-6 py-2.5 font-black text-xs uppercase cursor-pointer"
                 >
                   BATAL
