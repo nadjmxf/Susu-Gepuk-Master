@@ -23,4 +23,9 @@ class Penjualan extends Model
         'total_pendapatan',
         'jumlah_produk_terjual',
     ];
+
+    public function rider()
+    {
+        return $this->belongsTo(Rider::class, 'id_rider');
+    }
 }

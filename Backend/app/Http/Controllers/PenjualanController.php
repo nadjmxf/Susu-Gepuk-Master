@@ -311,4 +311,86 @@ class PenjualanController extends Controller
             ], 500);
         }
     }
+
+    // Get monthly rekap reports summary for admin panel
+    public function getReportsSummary(Request $request)
+    {
+        try {
+            $monthName = $request->query('month', 'Juni');
+            $year = $request->query('year', '2026');
+
+            // Map Indonesian month name to number
+            $monthMap = [
+                'Januari' => 1, 'Februari' => 2, 'Maret' => 3, 'April' => 4,
+                'Mei' => 5, 'Juni' => 6, 'Juli' => 7, 'Agustus' => 8,
+                'September' => 9, 'Oktober' => 10, 'November' => 11, 'Desember' => 12
+            ];
+            
+            $monthNum = isset($monthMap[$monthName]) ? $monthMap[$monthName] : Carbon::now()->month;
+
+            // Query base
+            $query = Penjualan::with('rider')
+                ->whereYear('tanggal_penjualan', $year)
+                ->whereMonth('tanggal_penjualan', $monthNum);
+
+            // Calculate metrics sums
+            $totalTerjual = (int) $query->sum('jumlah_produk_terjual');
+            $totalBasi = (int) $query->sum('jumlah_susu_basi');
+            $totalRusak = (int) $query->sum('jumlah_susu_rusak');
+            $totalPendapatan = (int) $query->sum('total_pendapatan');
+
+            // Daily entries with pagination
+            $penjualans = $query->orderBy('tanggal_penjualan', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+
+            $formattedData = collect($penjualans->items())->map(function ($item) {
+                $bawa = $item->jumlah_produk_terjual + $item->sisa_stok + $item->jumlah_susu_basi + $item->jumlah_susu_rusak;
+                
+                $metode = 'CASH';
+                if ($item->setoran_qris > 0 && $item->setoran_cash > 0) {
+                    $metode = 'MIXED';
+                } elseif ($item->setoran_qris > 0) {
+                    $metode = 'QRIS';
+                }
+
+                return [
+                    'id' => $item->id_penjualan,
+                    'tanggal' => Carbon::parse($item->tanggal_penjualan)->locale('id')->isoFormat('D MMMM Y'),
+                    'waktu' => Carbon::parse($item->created_at)->format('H:i') . ' WIB',
+                    'rider' => $item->rider ? $item->rider->nama_rider : 'Rider Tidak Dikenal',
+                    'unit' => $item->rider ? ($item->rider->area ?: 'SOTR Unit') : 'SOTR Unit',
+                    'gps' => $item->rider ? ($item->rider->current_location ?: 'Pekanbaru') : 'Pekanbaru',
+                    'bawa' => $bawa,
+                    'terjual' => $item->jumlah_produk_terjual,
+                    'basi' => $item->jumlah_susu_basi,
+                    'rusak' => $item->jumlah_susu_rusak,
+                    'metode' => $metode,
+                    'setoran' => $item->setoran_cash + $item->setoran_qris,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'metrics' => [
+                    'terjual' => number_format($totalTerjual, 0, ',', '.') . ' pcs',
+                    'basi' => number_format($totalBasi, 0, ',', '.') . ' pcs',
+                    'rusak' => number_format($totalRusak, 0, ',', '.') . ' pcs',
+                    'pendapatan' => 'Rp ' . number_format($totalPendapatan, 0, ',', '.'),
+                ],
+                'data' => $formattedData,
+                'pagination' => [
+                    'current_page' => $penjualans->currentPage(),
+                    'total' => $penjualans->total(),
+                    'per_page' => $penjualans->perPage(),
+                    'last_page' => $penjualans->lastPage(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data laporan: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('link_lokasi', 255)->nullable();
             $table->text('keterangan_lokasi')->nullable();
             $table->enum('status_operasional', ['Buka', 'Tutup'])->default('Buka');
+            $table->decimal('latitude', 10, 8)->nullable();
+            $table->decimal('longitude', 11, 8)->nullable();
             $table->timestamps();
 
             $table->foreign('id_admin')->references('id_admin')->on('admins')->onDelete('cascade');

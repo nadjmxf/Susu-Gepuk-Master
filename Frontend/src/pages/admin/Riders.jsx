@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import riderService from '../../services/riderService';
 
+const getFotoUrl = (fotoPath) => {
+  if (!fotoPath) return null;
+  if (fotoPath.startsWith('http')) return fotoPath;
+  const storageBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace('/api', '/storage');
+  return `${storageBaseUrl}/${fotoPath}`;
+};
+
 export default function Riders() {
   const [riders, setRiders] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -13,11 +20,49 @@ export default function Riders() {
   const [statusAkunRider, setStatusAkunRider] = useState(true);
   const [activityMonth, setActivityMonth] = useState('Juni');
   const [activityYear, setActivityYear] = useState('2026');
+  
+  // Activities state
+  const [activities, setActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
 
-  const handleViewDetail = (rider) => {
-    setSelectedRider(rider);
-    setStatusAkunRider(rider.status_akun === 'Aktif');
+  const handleViewDetail = async (rider) => {
+    try {
+      setLoading(true);
+      const response = await riderService.getRiderById(rider.id_rider);
+      if (response.success && response.data) {
+        setSelectedRider(response.data);
+        setStatusAkunRider(response.data.status_akun === 'Aktif');
+      } else {
+        setSelectedRider(rider);
+        setStatusAkunRider(rider.status_akun === 'Aktif');
+      }
+    } catch (err) {
+      console.error('Error fetching detail, fallback to list item:', err);
+      setSelectedRider(rider);
+      setStatusAkunRider(rider.status_akun === 'Aktif');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const fetchActivities = async () => {
+    if (!selectedRider) return;
+    try {
+      setLoadingActivities(true);
+      const response = await riderService.getRiderActivity(selectedRider.id_rider, activityMonth, activityYear);
+      if (response.success && response.data) {
+        setActivities(response.data);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data aktivitas:', err);
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchActivities();
+  }, [selectedRider?.id_rider, activityMonth, activityYear]);
 
   // Modal & Add Account Form states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -27,6 +72,7 @@ export default function Riders() {
     password: '',
     foto_rider: null
   });
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [formError, setFormError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -38,6 +84,7 @@ export default function Riders() {
     password: '',
     foto_rider: null
   });
+  const [editPhotoPreview, setEditPhotoPreview] = useState(null);
   const [editFormError, setEditFormError] = useState(null);
   const [showEditPassword, setShowEditPassword] = useState(false);
 
@@ -50,15 +97,23 @@ export default function Riders() {
     setIsConfirmStatusModalOpen(true);
   };
 
-  const handleConfirmStatusChange = () => {
-    setStatusAkunRider(pendingStatusValue);
-    if (selectedRider) {
-      const updatedRider = {
-        ...selectedRider,
+  const handleConfirmStatusChange = async () => {
+    if (!selectedRider) return;
+    try {
+      const response = await riderService.updateRider(selectedRider.id_rider, {
         status_akun: pendingStatusValue ? 'Aktif' : 'Nonaktif'
-      };
-      setSelectedRider(updatedRider);
-      setRiders(prevRiders => prevRiders.map(r => r.id_rider === selectedRider.id_rider ? updatedRider : r));
+      });
+      if (response.success) {
+        setStatusAkunRider(pendingStatusValue);
+        const updatedRider = {
+          ...selectedRider,
+          status_akun: pendingStatusValue ? 'Aktif' : 'Nonaktif'
+        };
+        setSelectedRider(updatedRider);
+        setRiders(prevRiders => prevRiders.map(r => r.id_rider === selectedRider.id_rider ? updatedRider : r));
+      }
+    } catch (err) {
+      console.error('Error updating status:', err);
     }
     setIsConfirmStatusModalOpen(false);
   };
@@ -67,17 +122,18 @@ export default function Riders() {
     if (selectedRider) {
       setEditFormData({
         nama_rider: selectedRider.nama_rider,
-        no_hp: selectedRider.no_hp,
+        no_hp: selectedRider.no_hp ? selectedRider.no_hp.replace('+62 ', '') : '',
         password: '',
         foto_rider: null
       });
+      setEditPhotoPreview(getFotoUrl(selectedRider.foto_rider));
       setEditFormError(null);
       setShowEditPassword(false);
       setIsEditModalOpen(true);
     }
   };
 
-  const handleUpdateRider = (e) => {
+  const handleUpdateRider = async (e) => {
     e.preventDefault();
     setEditFormError(null);
 
@@ -90,21 +146,47 @@ export default function Riders() {
       return;
     }
 
-    const updatedRider = {
-      ...selectedRider,
-      nama_rider: editFormData.nama_rider.trim(),
-      no_hp: editFormData.no_hp.trim(),
-    };
+    let formattedPhone = editFormData.no_hp.trim();
+    if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+62 ' + formattedPhone.replace(/^0/, '');
+    }
 
-    setSelectedRider(updatedRider);
-    setRiders(prevRiders => prevRiders.map(r => r.id_rider === selectedRider.id_rider ? updatedRider : r));
-    setIsEditModalOpen(false);
+    try {
+      const data = new FormData();
+      data.append('nama_rider', editFormData.nama_rider.trim());
+      data.append('no_hp', formattedPhone);
+      if (editFormData.password) {
+        data.append('password', editFormData.password);
+      }
+      if (editFormData.foto_rider) {
+        data.append('foto_rider', editFormData.foto_rider);
+      }
+
+      const response = await riderService.updateRider(selectedRider.id_rider, data);
+      if (response.success && response.data) {
+        setIsEditModalOpen(false);
+        
+        // Refresh detail view data
+        const updated = await riderService.getRiderById(selectedRider.id_rider);
+        if (updated.success && updated.data) {
+          setSelectedRider(updated.data);
+          setStatusAkunRider(updated.data.status_akun === 'Aktif');
+        }
+        
+        fetchRiders();
+      } else {
+        setEditFormError(response.message || 'Gagal memperbarui akun.');
+      }
+    } catch (err) {
+      console.error('Error updating rider:', err);
+      setEditFormError(err.message || 'Gagal memperbarui akun.');
+    }
   };
 
   const fetchRiders = async () => {
     try {
       setLoading(true);
-      // Try fetching from database/API
+      setError(null);
       const response = await riderService.getAllRiders();
       if (response.success && response.data) {
         setRiders(response.data);
@@ -112,16 +194,8 @@ export default function Riders() {
         setError('Gagal mengambil data rider dari database.');
       }
     } catch (err) {
-      console.error('Fetch error, using mock data:', err);
-      // Fallback mock data matching the screenshot specs
-      setRiders([
-        { id_rider: 1, nama_rider: 'Ahmad Subardjo', no_hp: '+62 812-3456-7898', area: 'Daerah Sudirman - Senayan', status_akun: 'Aktif', status_kehadiran: 'HADIR', code: 'SOTR-01' },
-        { id_rider: 2, nama_rider: 'Ahmad Subardjo', no_hp: '+62 812-3456-7898', area: 'Daerah Sudirman - Senayan', status_akun: 'Aktif', status_kehadiran: 'SAKIT', code: 'SOTR-02' },
-        { id_rider: 3, nama_rider: 'Ahmad Subardjo', no_hp: '+62 812-3456-7890', area: 'Daerah Sudirman - Senayan', status_akun: 'Nonaktif', status_kehadiran: 'HADIR', code: 'SOTR-03' },
-        { id_rider: 4, nama_rider: 'Ahmad Subardjo', no_hp: '+62 812-3456-7898', area: 'Daerah Sudirman - Senayan', status_akun: 'Aktif', status_kehadiran: 'TIDAK ADA AKTIVITAS', code: 'SOTR-04' },
-        { id_rider: 5, nama_rider: 'Ahmad Subardjo', no_hp: '+62 812-3456-7898', area: 'Daerah Sudirman - Senayan', status_akun: 'Aktif', status_kehadiran: 'HADIR', code: 'SOTR-05' },
-        { id_rider: 6, nama_rider: 'Ahmad Subardjo', no_hp: '+62 812-3456-7890', area: 'Daerah Sudirman - Senayan', status_akun: 'Aktif', status_kehadiran: 'IZIN', code: 'SOTR-06' }
-      ]);
+      console.error('Fetch error:', err);
+      setError(err.message || 'Gagal mengambil data rider dari database.');
     } finally {
       setLoading(false);
     }
@@ -159,17 +233,20 @@ export default function Riders() {
 
     try {
       const username = formData.nama_rider.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(100 + Math.random() * 900);
-      const payload = {
-        nama_rider: formData.nama_rider.trim(),
-        no_hp: '+62 ' + formData.no_hp.trim(),
-        username: username,
-        password: formData.password,
-      };
+      const data = new FormData();
+      data.append('nama_rider', formData.nama_rider.trim());
+      data.append('no_hp', '+62 ' + formData.no_hp.trim());
+      data.append('username', username);
+      data.append('password', formData.password);
+      if (formData.foto_rider) {
+        data.append('foto_rider', formData.foto_rider);
+      }
 
-      const response = await riderService.createRider(payload);
+      const response = await riderService.createRider(data);
       if (response && response.success) {
         setIsAddModalOpen(false);
         setFormData({ nama_rider: '', no_hp: '', password: '', foto_rider: null });
+        setPhotoPreview(null);
         fetchRiders();
       } else {
         setFormError(response?.message || 'Gagal menambahkan akun rider.');
@@ -182,26 +259,21 @@ export default function Riders() {
 
   // Enrich database riders with visual states (status kehadiran, code, location) if fetched from API
   const enrichedRiders = riders.map((rider, idx) => {
-    // If it's already enriched (mock data), keep it
-    if (rider.code) return rider;
-
-    // Otherwise, map database fields to screen spec fields
-    const statuses = ['HADIR', 'SAKIT', 'HADIR', 'TIDAK ADA AKTIVITAS', 'HADIR', 'IZIN'];
-    
     // Formatting phone number
     let formattedPhone = rider.no_hp;
-    if (!formattedPhone.startsWith('+')) {
-      formattedPhone = `+62 ${formattedPhone.replace(/^0/, '').replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}`;
+    if (formattedPhone && !formattedPhone.startsWith('+')) {
+      formattedPhone = `+62 ${formattedPhone.replace(/^0/, '')}`;
     }
 
     return {
+      ...rider,
       id_rider: rider.id_rider,
       nama_rider: rider.nama_rider,
       no_hp: formattedPhone,
       area: rider.area || 'Daerah Sudirman - Senayan',
       status_akun: rider.status_akun || 'Aktif',
-      status_kehadiran: statuses[idx % statuses.length],
-      code: `SOTR-0${idx + 1}`
+      status_kehadiran: rider.status_kehadiran || 'TIDAK ADA AKTIVITAS',
+      code: `SOTR-${String(rider.id_rider).padStart(2, '0')}`
     };
   });
 
@@ -273,12 +345,16 @@ export default function Riders() {
             {/* Left Card: Profile Card */}
             <div className="bg-white border-[3px] border-black rounded-2xl p-6 shadow-[6px_6px_0_0_#000] flex flex-col sm:flex-row gap-6 items-center sm:items-start text-left">
               {/* Avatar Photo */}
-              <div className="w-32 h-32 rounded-2xl border-[3px] border-black overflow-hidden shrink-0 shadow-[3px_3px_0_0_#000]">
-                <img 
-                  src={`https://images.unsplash.com/photo-${selectedRider.id_rider % 2 === 0 ? '1500648767791-00dcc994a43e' : '1535713875002-d1d0cf377fde'}?auto=format&fit=crop&q=80&w=250`}
-                  alt={selectedRider.nama_rider}
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-32 h-32 rounded-2xl border-[3px] border-black overflow-hidden shrink-0 shadow-[3px_3px_0_0_#000] bg-gray-100 flex items-center justify-center">
+                {selectedRider.foto_rider ? (
+                  <img 
+                    src={getFotoUrl(selectedRider.foto_rider)}
+                    alt={selectedRider.nama_rider}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="material-symbols-outlined text-4xl text-gray-400">person</span>
+                )}
               </div>
               
               {/* Details */}
@@ -310,7 +386,7 @@ export default function Riders() {
                   <span className="material-symbols-outlined text-sm text-gray-500">calendar_month</span>
                   <span>Tanggal Bergabung</span>
                   <span>:</span>
-                  <span>12 Jan 2024</span>
+                  <span>{selectedRider.created_at ? new Date(selectedRider.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</span>
 
                   <span className="material-symbols-outlined text-sm text-gray-500">calendar_month</span>
                   <span>Tanggal Berhenti</span>
@@ -325,10 +401,9 @@ export default function Riders() {
               {/* Header */}
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-sm font-black text-black uppercase tracking-wider">Ringkasan Performa</h3>
-                <button className="bg-black hover:bg-gray-800 text-white font-black px-4 py-1.5 rounded-lg border-2 border-black text-xs uppercase flex items-center gap-1 cursor-pointer">
+                <span className="bg-black text-white font-black px-4 py-1.5 rounded-lg border-2 border-black text-xs uppercase flex items-center gap-1">
                   Bulan Ini
-                  <span className="material-symbols-outlined text-xs">expand_more</span>
-                </button>
+                </span>
               </div>
               
               {/* Metrics Grid */}
@@ -336,14 +411,20 @@ export default function Riders() {
                 {/* Produk Terjual */}
                 <div className="border-[3px] border-black rounded-xl p-4 bg-white shadow-[4px_4px_0_0_#000] text-left">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">PRODUK TERJUAL</span>
-                  <span className="text-3xl font-black text-black">042</span>
+                  <span className="text-3xl font-black text-black">
+                    {String(selectedRider.performance?.produk_terjual || 0).padStart(3, '0')}
+                  </span>
                 </div>
                 
                 {/* Total Pendapatan */}
                 <div className="border-[3px] border-black rounded-xl p-4 bg-white shadow-[4px_4px_0_0_#000] text-left">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">TOTAL PENDAPATAN</span>
-                  <span className="text-3xl font-black text-black block">Rp 12.6M</span>
-                  <span className="text-[10px] font-bold text-gray-500 mt-1 block">Target: Rp 15M</span>
+                  <span className="text-3xl font-black text-black block">
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(selectedRider.performance?.total_pendapatan || 0)}
+                  </span>
+                  <span className="text-[10px] font-bold text-gray-500 mt-1 block">
+                    Target: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(selectedRider.performance?.target_pendapatan || 15000000)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -375,6 +456,12 @@ export default function Riders() {
                 <div className="relative z-10 flex flex-col items-center">
                   <span className="material-symbols-outlined text-red-600 text-5xl drop-shadow-[0_4px_6px_rgba(0,0,0,0.3)] animate-bounce" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
                   <div className="w-3 h-3 bg-red-600/30 rounded-full blur-[2px] -mt-1"></div>
+                  {/* Coordinates Badge */}
+                  {selectedRider.location?.latitude && selectedRider.location?.longitude && (
+                    <div className="bg-black text-white text-[8px] font-mono px-2 py-0.5 rounded mt-1 border border-black shadow-[1px_1px_0_0_#000]">
+                      {selectedRider.location.latitude.toFixed(4)}, {selectedRider.location.longitude.toFixed(4)}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Map Preview Badge */}
@@ -386,16 +473,23 @@ export default function Riders() {
               {/* Info Box */}
               <div className="space-y-4 lg:pl-4 text-left">
                 <div>
-                  <h4 className="text-2xl font-black text-black tracking-tight">{selectedRider.code || 'SOTR-01'}</h4>
+                  <h4 className="text-2xl font-black text-black tracking-tight">{`SOTR-${String(selectedRider.id_rider).padStart(2, '0')}`}</h4>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-[#22C55E] animate-pulse"></span>
-                  <span className="text-sm font-black text-black">Sedang Berjualan</span>
+                  <span className={`w-3 h-3 rounded-full animate-pulse ${selectedRider.status_jualan === 'Tersedia' ? 'bg-[#22C55E]' : 'bg-red-500'}`}></span>
+                  <span className="text-sm font-black text-black">
+                    {selectedRider.status_jualan === 'Tersedia' ? 'Sedang Berjualan' : 'Selesai Berjualan / Stok Habis'}
+                  </span>
                 </div>
                 
+                <p className="text-xs text-gray-700 font-bold max-w-xs leading-relaxed">
+                  <span className="font-black">Alamat: </span>
+                  {selectedRider.location?.alamat || 'Lokasi tidak tersedia'}
+                </p>
+                
                 <p className="text-xs text-gray-500 font-bold">
-                  Terakhir diperbarui: 2 menit yang lalu
+                  Terakhir diperbarui: {selectedRider.location?.waktu_update ? new Date(selectedRider.location.waktu_update).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Belum diperbarui'}
                 </p>
               </div>
             </div>
@@ -447,19 +541,19 @@ export default function Riders() {
               <div className="border-[3px] border-black rounded-xl p-4 bg-white shadow-[4px_4px_0_0_#000] text-center">
                 <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">TOTAL HADIR</span>
                 <div className="text-xl font-black text-black">
-                  22 <span className="text-xs font-bold text-gray-500">hari</span>
+                  {selectedRider.attendance_summary?.hadir || 0} <span className="text-xs font-bold text-gray-500">hari</span>
                 </div>
               </div>
               <div className="border-[3px] border-black rounded-xl p-4 bg-white shadow-[4px_4px_0_0_#000] text-center">
                 <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">IZIN</span>
                 <div className="text-xl font-black text-black">
-                  2 <span className="text-xs font-bold text-gray-500">hari</span>
+                  {selectedRider.attendance_summary?.izin || 0} <span className="text-xs font-bold text-gray-500">hari</span>
                 </div>
               </div>
               <div className="border-[3px] border-black rounded-xl p-4 bg-white shadow-[4px_4px_0_0_#000] text-center">
                 <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">SAKIT</span>
                 <div className="text-xl font-black text-black">
-                  1 <span className="text-xs font-bold text-gray-500">hari</span>
+                  {selectedRider.attendance_summary?.sakit || 0} <span className="text-xs font-bold text-gray-500">hari</span>
                 </div>
               </div>
             </div>
@@ -475,56 +569,66 @@ export default function Riders() {
                   </tr>
                 </thead>
                 <tbody className="divide-y-2 divide-gray-100">
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 border-r-2 border-gray-100 font-black">15 Jun {activityYear}</td>
-                    <td className="px-6 py-4 border-r-2 border-gray-100">
-                      <span className="border-2 border-[#22C55E] bg-green-50 text-[#22C55E] text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]"></span>
-                        Hadir
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 font-medium">-</td>
-                  </tr>
-                  <tr className="bg-[#FFF0F3] hover:bg-red-50/50 transition-colors">
-                    <td className="px-6 py-4 border-r-2 border-gray-100 font-black text-red-600">14 Jun {activityYear}</td>
-                    <td className="px-6 py-4 border-r-2 border-gray-100">
-                      <span className="border-2 border-[#DC2626] bg-red-50 text-[#DC2626] text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
-                        Sakit
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-[#DC2626] font-black">Sakit: Demam tinggi!</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 border-r-2 border-gray-100 font-black">13 Jun {activityYear}</td>
-                    <td className="px-6 py-4 border-r-2 border-gray-100">
-                      <span className="border-2 border-[#22C55E] bg-green-50 text-[#22C55E] text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]"></span>
-                        Hadir
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 font-medium">-</td>
-                  </tr>
-                  <tr className="bg-[#F8FAFC] hover:bg-blue-50/50 transition-colors">
-                    <td className="px-6 py-4 border-r-2 border-gray-100 font-black">12 Jun {activityYear}</td>
-                    <td className="px-6 py-4 border-r-2 border-gray-100">
-                      <span className="border-2 border-[#1E40AF] bg-blue-50 text-[#1E40AF] text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#1E40AF]"></span>
-                        Izin
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-700 font-black">Izin: Acara Keluarga (Sudah disetujui)</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 border-r-2 border-gray-100 font-black text-gray-400">11 Jun {activityYear}</td>
-                    <td className="px-6 py-4 border-r-2 border-gray-100">
-                      <span className="border-2 border-gray-400 bg-gray-50 text-gray-500 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                        Tidak ada aktivitas
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-400 font-medium">-</td>
-                  </tr>
+                  {loadingActivities ? (
+                    <tr>
+                      <td colSpan="3" className="px-6 py-8 text-center text-gray-500 font-bold">
+                        Memuat riwayat aktivitas...
+                      </td>
+                    </tr>
+                  ) : activities.length === 0 ? (
+                    <tr>
+                      <td colSpan="3" className="px-6 py-8 text-center text-gray-400 font-bold">
+                        Tidak ada riwayat aktivitas pada bulan ini.
+                      </td>
+                    </tr>
+                  ) : (
+                    activities.map((act) => {
+                      let statusBadge = null;
+                      if (act.status_aktivitas === 'Berjualan') {
+                        statusBadge = (
+                          <span className="border-2 border-[#22C55E] bg-green-50 text-[#22C55E] text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]"></span>
+                            Hadir
+                          </span>
+                        );
+                      } else if (act.status_aktivitas === 'Sakit') {
+                        statusBadge = (
+                          <span className="border-2 border-[#DC2626] bg-red-50 text-[#DC2626] text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
+                            Sakit
+                          </span>
+                        );
+                      } else if (act.status_aktivitas === 'Izin') {
+                        statusBadge = (
+                          <span className="border-2 border-[#1E40AF] bg-blue-50 text-[#1E40AF] text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#1E40AF]"></span>
+                            Izin
+                          </span>
+                        );
+                      } else {
+                        statusBadge = (
+                          <span className="border-2 border-gray-400 bg-gray-50 text-gray-500 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                            Tidak ada aktivitas
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <tr key={act.id_aktivitas} className={`hover:bg-gray-50 transition-colors ${act.status_aktivitas === 'Sakit' ? 'bg-[#FFF0F3]' : act.status_aktivitas === 'Izin' ? 'bg-[#F8FAFC]' : ''}`}>
+                          <td className="px-6 py-4 border-r-2 border-gray-100 font-black">
+                            {new Date(act.tanggal_aktivitas).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </td>
+                          <td className="px-6 py-4 border-r-2 border-gray-100">
+                            {statusBadge}
+                          </td>
+                          <td className="px-6 py-4 text-gray-500 font-medium">
+                            {act.keterangan || '-'}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -611,12 +715,16 @@ export default function Riders() {
                     className="bg-white border-[3px] border-black rounded-2xl p-6 shadow-[6px_6px_0_0_#000] relative flex flex-col pt-12"
                   >
                     {/* Overlapping Avatar Image */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-[3px] border-black bg-white overflow-hidden shadow-[2px_2px_0_0_#000]">
-                      <img
-                        src={`https://images.unsplash.com/photo-${rider.id_rider % 2 === 0 ? '1500648767791-00dcc994a43e' : '1535713875002-d1d0cf377fde'}?auto=format&fit=crop&q=80&w=150`}
-                        alt={rider.nama_rider}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-[3px] border-black bg-white overflow-hidden shadow-[2px_2px_0_0_#000] flex items-center justify-center">
+                      {rider.foto_rider ? (
+                        <img
+                          src={getFotoUrl(rider.foto_rider)}
+                          alt={rider.nama_rider}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="material-symbols-outlined text-3xl text-gray-400">person</span>
+                      )}
                     </div>
 
                     {/* Status Akun Badge */}
@@ -780,10 +888,32 @@ export default function Riders() {
                     Foto Profil Rider
                   </label>
                   <div className="flex items-center gap-4">
-                    <div className="border-2 border-dashed border-black rounded-xl w-24 h-24 flex flex-col items-center justify-center bg-white cursor-pointer hover:bg-gray-50 transition-colors">
-                      <span className="material-symbols-outlined text-black font-black text-2xl">photo_camera</span>
-                      <span className="text-[9px] font-black text-black uppercase tracking-widest mt-1">Upload</span>
-                    </div>
+                    <input 
+                      type="file"
+                      id="foto-rider-add"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setFormData({ ...formData, foto_rider: file });
+                          setPhotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                    <label 
+                      htmlFor="foto-rider-add"
+                      className="border-2 border-dashed border-black rounded-xl w-24 h-24 flex flex-col items-center justify-center bg-white cursor-pointer hover:bg-gray-50 transition-colors overflow-hidden relative shadow-[2px_2px_0_0_#000]"
+                    >
+                      {photoPreview ? (
+                        <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-black font-black text-2xl">photo_camera</span>
+                          <span className="text-[9px] font-black text-black uppercase tracking-widest mt-1">Upload</span>
+                        </>
+                      )}
+                    </label>
                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-normal">
                       Format JPG/PNG, Maks 2MB
                     </span>
@@ -848,20 +978,37 @@ export default function Riders() {
               <div className="p-6 space-y-6 flex-1 overflow-y-auto">
                 {/* Photo Upload Section */}
                 <div className="flex items-center gap-6 mb-2">
+                  <input 
+                    type="file"
+                    id="foto-rider-edit"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setEditFormData({ ...editFormData, foto_rider: file });
+                        setEditPhotoPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
                   <div className="relative w-24 h-24 shrink-0">
-                    <div className="w-full h-full border-[3px] border-black bg-white overflow-hidden shadow-[3px_3px_0_0_#000] rounded-lg">
-                      <img 
-                        src={`https://images.unsplash.com/photo-${selectedRider.id_rider % 2 === 0 ? '1500648767791-00dcc994a43e' : '1535713875002-d1d0cf377fde'}?auto=format&fit=crop&q=80&w=150`}
-                        alt={editFormData.nama_rider}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="w-full h-full border-[3px] border-black bg-white overflow-hidden shadow-[3px_3px_0_0_#000] rounded-lg flex items-center justify-center">
+                      {editPhotoPreview ? (
+                        <img 
+                          src={editPhotoPreview}
+                          alt={editFormData.nama_rider}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="material-symbols-outlined text-3xl text-gray-400">person</span>
+                      )}
                     </div>
-                    <button 
-                      type="button"
+                    <label 
+                      htmlFor="foto-rider-edit"
                       className="absolute -bottom-2 -right-2 bg-[#FACC15] hover:bg-yellow-400 border-2 border-black rounded-lg p-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer flex items-center justify-center"
                     >
                       <span className="material-symbols-outlined text-black font-black text-xs">edit</span>
-                    </button>
+                    </label>
                   </div>
                   <div className="text-left">
                     <h3 className="font-black text-[#0A1045] text-md">Foto Profil Rider</h3>

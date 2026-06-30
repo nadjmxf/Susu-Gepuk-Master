@@ -64,9 +64,12 @@ const riderService = {
   },
 
   // Get rider activity
-  getRiderActivity: async (riderId) => {
+  getRiderActivity: async (riderId, month = null, year = null) => {
     try {
-      const response = await api.get(`/rider/${riderId}/activity`);
+      const params = {};
+      if (month) params.month = month;
+      if (year) params.year = year;
+      const response = await api.get(`/rider/${riderId}/activity`, { params });
       return response.data;
     } catch (error) {
       throw error.response?.data || {
@@ -79,12 +82,50 @@ const riderService = {
   // Create a new rider
   createRider: async (payload) => {
     try {
-      const response = await api.post('/rider', payload);
+      const isFormData = payload instanceof FormData;
+      const headers = isFormData ? { 'Content-Type': 'multipart/form-data' } : {};
+      const response = await api.post('/rider', payload, { headers });
       return response.data;
     } catch (error) {
       throw error.response?.data || {
         success: false,
         message: 'Gagal menambahkan data rider',
+      };
+    }
+  },
+
+  // Update rider details
+  updateRider: async (riderId, payload) => {
+    try {
+      const isFormData = payload instanceof FormData;
+      let response;
+      if (isFormData) {
+        payload.append('_method', 'PUT');
+        response = await api.post(`/rider/${riderId}`, payload, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        response = await api.put(`/rider/${riderId}`, payload);
+      }
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || {
+        success: false,
+        message: 'Gagal memperbarui data rider',
+      };
+    }
+  },
+  // Get SOTR locations
+  getSotrLocations: async () => {
+    try {
+      const response = await api.get('/sotr/locations');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || {
+        success: false,
+        message: 'Gagal mengambil data lokasi SOTR',
       };
     }
   },

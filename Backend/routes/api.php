@@ -44,6 +44,7 @@ Route::apiResource('rider', RiderController::class);
 
 Route::get('/rider/{id}/location', [RiderController::class, 'getLocation']);
 Route::put('/rider/{id}/location', [RiderController::class, 'updateLocation']);
+Route::get('/sotr/locations', [\App\Http\Controllers\LokasiBiController::class, 'index']);
 
 /*
 |--------------------------------------------------------------------------
@@ -76,6 +77,7 @@ Route::apiResource('menu', MenuController::class);
 |--------------------------------------------------------------------------
 */
 
+Route::get('/penjualan/reports/summary', [PenjualanController::class, 'getReportsSummary']);
 Route::apiResource('penjualan', PenjualanController::class);
 Route::get('/penjualan/rider/{id}/latest', [PenjualanController::class, 'getLatestByRider']);
 Route::get('/penjualan/rider/{id}/today', [PenjualanController::class, 'getTodayByRider']);

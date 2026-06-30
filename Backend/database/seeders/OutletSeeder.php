@@ -22,6 +22,8 @@ class OutletSeeder extends Seeder
             'link_lokasi' => 'https://maps.app.goo.gl/BYfh2QSe9gRcPDh18',
             'keterangan_lokasi' => '08:00 - 22:00',
             'status_operasional' => 'Buka',
+            'latitude' => 0.45780000,
+            'longitude' => 101.45890000,
         ]);
 
         \App\Models\Outlet::create([
@@ -33,6 +35,8 @@ class OutletSeeder extends Seeder
             'link_lokasi' => 'https://goo.gl/maps/qfEfed8L1tVZtF4A7',
             'keterangan_lokasi' => '08:00 - 22:00',
             'status_operasional' => 'Buka',
+            'latitude' => 0.46230000,
+            'longitude' => 101.46350000,
         ]);
 
         // Area Panam
@@ -45,6 +49,8 @@ class OutletSeeder extends Seeder
             'link_lokasi' => 'https://maps.app.goo.gl/o7eUF5xgNvxnRmh79',
             'keterangan_lokasi' => '09:00 - 22:00',
             'status_operasional' => 'Buka',
+            'latitude' => 0.47280000,
+            'longitude' => 101.37890000,
         ]);
 
         \App\Models\Outlet::create([
@@ -56,6 +62,8 @@ class OutletSeeder extends Seeder
             'link_lokasi' => 'https://maps.app.goo.gl/AtT4btqASm7N1ng68',
             'keterangan_lokasi' => '09:00 - 22:00',
             'status_operasional' => 'Tutup',
+            'latitude' => 0.47950000,
+            'longitude' => 101.38540000,
         ]);
 
         // Area Pandau Permai
@@ -68,6 +76,8 @@ class OutletSeeder extends Seeder
             'link_lokasi' => 'https://maps.app.goo.gl/XJzevuAVPoscnF8N6',
             'keterangan_lokasi' => '09:00 - 22:00',
             'status_operasional' => 'Buka',
+            'latitude' => 0.42890000,
+            'longitude' => 101.44210000,
         ]);
     }
 }

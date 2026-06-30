@@ -20,5 +20,12 @@ class Outlet extends Model
         'link_lokasi',
         'keterangan_lokasi',
         'status_operasional',
+        'latitude',
+        'longitude',
     ];
+
+    public function rider()
+    {
+        return $this->belongsTo(Rider::class, 'id_rider');
+    }
 }

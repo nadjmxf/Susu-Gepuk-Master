@@ -23,4 +23,14 @@ class Rider extends Model
         'status_jualan',
         'status_live_location',
     ];
+
+    public function aktivitas()
+    {
+        return $this->hasMany(Aktivitas::class, 'id_rider', 'id_rider');
+    }
+
+    public function penjualan()
+    {
+        return $this->hasMany(Penjualan::class, 'id_rider', 'id_rider');
+    }
 }

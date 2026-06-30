@@ -11,13 +11,13 @@ class OutletController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => Outlet::all(),
+            'data' => Outlet::with('rider')->get(),
         ]);
     }
 
     public function show($id)
     {
-        $outlet = Outlet::find($id);
+        $outlet = Outlet::with('rider')->find($id);
         
         if (!$outlet) {
             return response()->json([
@@ -36,15 +36,21 @@ class OutletController extends Controller
     {
         $validated = $request->validate([
             'id_admin' => 'required|exists:admins,id_admin',
+            'id_rider' => 'nullable|exists:riders,id_rider',
             'nama_outlet' => 'required|string|max:100',
             'area' => 'required|string|max:100',
             'jenis_outlet' => 'required|in:Outlet Tetap,Outlet Bergerak',
             'link_lokasi' => 'nullable|string|max:255',
             'keterangan_lokasi' => 'nullable|string',
             'status_operasional' => 'required|in:Buka,Tutup',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
 
         $outlet = Outlet::create($validated);
+        
+        // Load relation for response
+        $outlet->load('rider');
 
         return response()->json([
             'success' => true,
@@ -64,15 +70,21 @@ class OutletController extends Controller
         }
 
         $validated = $request->validate([
+            'id_rider' => 'nullable|exists:riders,id_rider',
             'nama_outlet' => 'string|max:100',
             'area' => 'string|max:100',
             'jenis_outlet' => 'in:Outlet Tetap,Outlet Bergerak',
             'link_lokasi' => 'nullable|string|max:255',
             'keterangan_lokasi' => 'nullable|string',
             'status_operasional' => 'in:Buka,Tutup',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
 
         $outlet->update($validated);
+        
+        // Load relation for response
+        $outlet->load('rider');
 
         return response()->json([
             'success' => true,
