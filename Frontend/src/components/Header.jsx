@@ -102,12 +102,12 @@ export default function Header() {
   };
 
   return (
-    <header className={`fixed top-0 left-0 w-full z-50 px-8 md:px-11 flex justify-between items-center transition-all duration-300 bg-white opacity-0 animate-fade-in ${isScrolled ? 'py-3 shadow-md border-b border-gray-100' : 'py-5'}`} style={{ animationFillMode: 'forwards' }}>
+    <header className={`fixed top-0 left-0 w-full z-50 pl-2 pr-4 md:px-11 flex justify-between items-center transition-all duration-300 bg-white opacity-0 animate-fade-in ${isScrolled ? 'py-3 shadow-md border-b border-gray-100' : 'py-5'}`} style={{ animationFillMode: 'forwards' }}>
       <div 
         onClick={() => navigate('/')}
         className="flex flex-col leading-none font-bold text-[#0f2c7a] text-xl font-display-xl uppercase tracking-tighter hover:scale-105 transition-transform duration-300 cursor-pointer"
       >
-        <img src="/susu.png" alt="Susu Gepuk" className="w-48" />
+        <img src="/susu.png" alt="Susu Gepuk" className="w-28 md:w-48" />
       </div>
       
       <nav className="hidden md:flex bg-[#0f2c7a] rounded-full p-1.5 shadow-[0_4px_14px_0_rgba(15,44,122,0.39)] relative">
