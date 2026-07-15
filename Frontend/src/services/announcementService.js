@@ -30,7 +30,9 @@ const announcementService = {
   // Create announcement
   createAnnouncement: async (payload) => {
     try {
-      const response = await api.post('/announcement', payload);
+      const isFormData = payload instanceof FormData;
+      const headers = isFormData ? { 'Content-Type': 'multipart/form-data' } : {};
+      const response = await api.post('/announcement', payload, { headers });
       return response.data;
     } catch (error) {
       throw error.response?.data || {
@@ -43,7 +45,18 @@ const announcementService = {
   // Update announcement
   updateAnnouncement: async (announcementId, payload) => {
     try {
-      const response = await api.put(`/announcement/${announcementId}`, payload);
+      const isFormData = payload instanceof FormData;
+      let response;
+      if (isFormData) {
+        payload.append('_method', 'PUT');
+        response = await api.post(`/announcement/${announcementId}`, payload, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        response = await api.put(`/announcement/${announcementId}`, payload);
+      }
       return response.data;
     } catch (error) {
       throw error.response?.data || {

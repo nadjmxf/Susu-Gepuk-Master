@@ -36,9 +36,9 @@ export default function RiderLogin() {
     <AuthLayout
       extraContent={
         <img
-          src="/susuputih.png"
+          src="/Susuputih (1).png"
           alt="Susu Gepuk"
-          className="w-[300px] h-auto mx-7 -mt-59 drop-shadow-xl"
+          className="w-[450px] h-auto mx-auto block -translate-y-16 drop-shadow-xl"
         />
       }
     >

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import menuService from '../../services/menuService';
 import penjualanService from '../../services/penjualanService';
@@ -13,6 +14,17 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
+// Force Leaflet to recalculate size after conditional render
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+  }, [map]);
+  return null;
+}
+
 export default function RiderDashboard() {
   const [riderProducts, setRiderProducts] = useState([]);
   const [salesData, setSalesData] = useState(null);
@@ -20,7 +32,7 @@ export default function RiderDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [riderId, setRiderId] = useState(null);
-  
+
   // Location state
   const [location, setLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
@@ -115,12 +127,12 @@ export default function RiderDashboard() {
     fetchData();
   }, [riderId]);
 
-  // Handle toggle live location
+  // Handle toggle Aktifkan akses lokasi
   const handleToggleLive = useCallback(async () => {
     try {
       setToggleLoading(true);
       const newIsLive = !isLive;
-      
+
       if (newIsLive) {
         // When turning ON, get current location
         setLocationLoading(true);
@@ -137,12 +149,12 @@ export default function RiderDashboard() {
           async (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            
+
             // Update backend dengan status Aktif dan lat/lng
             try {
               const response = await riderService.updateRiderLocation(riderId, 'Aktif', lat, lng);
               console.log('Toggle ON response:', response);
-              
+
               if (response.success) {
                 // Verify the update was actually applied in the backend
                 const verifyResponse = await riderService.getRiderById(riderId);
@@ -153,19 +165,19 @@ export default function RiderDashboard() {
                   setToggleLoading(false);
                   setLocationLoading(false);
                 } else {
-                  setError('Gagal mengaktifkan live location (data tidak tersimpan)');
+                  setError('Gagal mengaktifkan Aktifkan akses lokasi (data tidak tersimpan)');
                   setToggleLoading(false);
                   setLocationLoading(false);
                   setIsLive(false); // Revert to match database state
                 }
               } else {
-                setError(response.message || 'Gagal mengaktifkan live location');
+                setError(response.message || 'Gagal mengaktifkan Aktifkan akses lokasi');
                 setToggleLoading(false);
                 setLocationLoading(false);
               }
             } catch (err) {
               console.error('Toggle ON error:', err);
-              setError('Gagal mengaktifkan live location: ' + (err.message || 'Unknown error'));
+              setError('Gagal mengaktifkan Aktifkan akses lokasi: ' + (err.message || 'Unknown error'));
               setToggleLoading(false);
               setLocationLoading(false);
             }
@@ -175,11 +187,11 @@ export default function RiderDashboard() {
             console.warn('Geolocation failed, using fallback coordinates:', error.message);
             const fallbackLat = -6.2088;
             const fallbackLng = 106.8456;
-            
+
             try {
               const response = await riderService.updateRiderLocation(riderId, 'Aktif', fallbackLat, fallbackLng);
               console.log('Toggle ON with fallback response:', response);
-              
+
               if (response.success) {
                 // Verify the update was actually applied in the backend
                 const verifyResponse = await riderService.getRiderById(riderId);
@@ -191,19 +203,19 @@ export default function RiderDashboard() {
                   setToggleLoading(false);
                   setLocationLoading(false);
                 } else {
-                  setError('Gagal mengaktifkan live location (data tidak tersimpan)');
+                  setError('Gagal mengaktifkan Aktifkan akses lokasi (data tidak tersimpan)');
                   setToggleLoading(false);
                   setLocationLoading(false);
                   setIsLive(false); // Revert to match database state
                 }
               } else {
-                setError(response.message || 'Gagal mengaktifkan live location');
+                setError(response.message || 'Gagal mengaktifkan Aktifkan akses lokasi');
                 setToggleLoading(false);
                 setLocationLoading(false);
               }
             } catch (err) {
               console.error('Toggle ON with fallback error:', err);
-              setError('Gagal mengaktifkan live location: ' + (err.message || 'Unknown error'));
+              setError('Gagal mengaktifkan Aktifkan akses lokasi: ' + (err.message || 'Unknown error'));
               setToggleLoading(false);
               setLocationLoading(false);
             }
@@ -219,7 +231,7 @@ export default function RiderDashboard() {
         try {
           const response = await riderService.updateRiderLocation(riderId, 'Nonaktif');
           console.log('Toggle OFF response:', response);
-          
+
           if (response.success) {
             // Verify the update was actually applied in the backend
             const verifyResponse = await riderService.getRiderById(riderId);
@@ -228,23 +240,23 @@ export default function RiderDashboard() {
               setToggleLoading(false);
             } else {
               // Backend didn't actually update, keep UI in sync with database
-              setError('Gagal menonaktifkan live location (data tidak tersimpan)');
+              setError('Gagal menonaktifkan Aktifkan akses lokasi (data tidak tersimpan)');
               setToggleLoading(false);
               setIsLive(true); // Revert UI to match actual database state
             }
           } else {
-            setError(response.message || 'Gagal menonaktifkan live location');
+            setError(response.message || 'Gagal menonaktifkan Aktifkan akses lokasi');
             setToggleLoading(false);
           }
         } catch (err) {
           console.error('Toggle OFF error:', err);
-          setError('Gagal menonaktifkan live location: ' + (err.message || 'Unknown error'));
+          setError('Gagal menonaktifkan Aktifkan akses lokasi: ' + (err.message || 'Unknown error'));
           setToggleLoading(false);
         }
       }
     } catch (err) {
       console.error('Toggle general error:', err);
-      setError('Gagal mengubah status live location');
+      setError('Gagal mengubah status Aktifkan akses lokasi');
       setToggleLoading(false);
       setLocationLoading(false);
     }
@@ -285,37 +297,33 @@ export default function RiderDashboard() {
         </div>
       </div>
 
-      {/* Live Location Card */}
+      {/* Aktifkan akses lokasi Card */}
       <div className="bg-white border-4 border-gray-900 shadow-[8px_8px_0_0_rgba(17,24,39,1)] rounded-2xl overflow-hidden mb-8">
         {/* Card Header */}
         <div className="bg-[#fdd835] border-b-4 border-gray-900 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-wrap">
-            <h2 className="text-xl font-black text-gray-900 uppercase tracking-widest">LIVE LOCATION</h2>
-            <div className={`border-2 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm ${
-              isLive
-                ? 'bg-green-50 border-green-500 text-green-700'
-                : 'bg-gray-100 border-gray-400 text-gray-700'
-            }`}>
-              <div className={`w-2.5 h-2.5 rounded-full border border-white ${
-                isLive
-                  ? 'bg-green-500 animate-pulse'
-                  : 'bg-gray-400'
-              }`}></div>
+            <h2 className="text-xl font-black text-gray-900 uppercase tracking-widest">Aktifkan akses lokasi</h2>
+            <div className={`border-2 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm ${isLive
+              ? 'bg-green-50 border-green-500 text-green-700'
+              : 'bg-gray-100 border-gray-400 text-gray-700'
+              }`}>
+              <div className={`w-2.5 h-2.5 rounded-full border border-white ${isLive
+                ? 'bg-green-500 animate-pulse'
+                : 'bg-gray-400'
+                }`}></div>
               {isLive ? 'Lokasi ditampilkan' : 'Lokasi tersembunyi'}
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="font-bold text-gray-900 text-sm">{isLive ? 'Aktif' : 'Nonaktif'}</span>
-            <button 
+            <button
               onClick={handleToggleLive}
               disabled={toggleLoading || locationLoading}
-              className={`w-14 h-8 rounded-full border-4 border-gray-900 flex items-center p-0.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                isLive ? 'bg-green-500' : 'bg-gray-300'
-              }`}
+              className={`w-14 h-8 rounded-full border-4 border-gray-900 flex items-center p-0.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isLive ? 'bg-green-500' : 'bg-gray-300'
+                }`}
             >
-              <div className={`w-5 h-5 bg-white border-2 border-gray-900 rounded-full transition-transform ${
-                isLive ? 'translate-x-6' : 'translate-x-0'
-              }`}></div>
+              <div className={`w-5 h-5 bg-white border-2 border-gray-900 rounded-full transition-transform ${isLive ? 'translate-x-6' : 'translate-x-0'
+                }`}></div>
             </button>
           </div>
         </div>
@@ -324,12 +332,12 @@ export default function RiderDashboard() {
         <div className="p-6 md:p-8 flex flex-col lg:flex-row gap-8 items-center">
           <div className="flex-1 flex flex-col justify-center">
             <p className="text-gray-700 font-medium text-lg leading-relaxed mb-8 max-w-lg">
-              {isLive 
+              {isLive
                 ? 'Lokasi Anda sedang ditampilkan kepada pelanggan. Mereka dapat menemukan Anda di area sekitar.'
                 : 'Aktifkan toggle untuk menampilkan lokasi Anda kepada pelanggan.'
               }
             </p>
-            
+
             {/* GPS Coordinates Box */}
             {isLive ? (
               <div className="bg-gray-100 border-4 border-gray-900 rounded-xl p-5 flex items-start gap-4 shadow-[4px_4px_0_0_rgba(17,24,39,1)] max-w-md w-full relative">
@@ -371,7 +379,7 @@ export default function RiderDashboard() {
                 </div>
               </div>
             )}
-            
+
             <p className="text-xs text-gray-500 mt-4 font-bold flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[14px]">history</span>
               {lastUpdated ? (
@@ -383,27 +391,27 @@ export default function RiderDashboard() {
               )}
             </p>
           </div>
-          
+
           {/* Map with Leaflet - Only show when isLive is true */}
           {isLive && (
-            <div className="lg:w-1/2 w-full rounded-2xl border-4 border-gray-900 overflow-hidden relative min-h-[300px] shadow-[6px_6px_0_0_rgba(17,24,39,1)]">
+            <div className="lg:w-1/2 w-full rounded-2xl border-4 border-gray-900 overflow-hidden relative shadow-[6px_6px_0_0_rgba(17,24,39,1)]">
               {locationError && (
-                <div className="absolute top-4 left-4 right-4 bg-red-100 border-2 border-red-500 rounded-lg p-3 z-10">
+                <div className="absolute top-4 left-4 right-4 bg-red-100 border-2 border-red-500 rounded-lg p-3 z-[1000]">
                   <p className="text-red-700 text-sm font-bold">{locationError}</p>
                 </div>
               )}
-              
-              <MapContainer 
-                center={location || defaultCoordinates} 
-                zoom={15} 
-                style={{ height: '100%', width: '100%' }}
+
+              <MapContainer
+                center={location || defaultCoordinates}
+                zoom={15}
+                style={{ height: '350px', width: '100%' }}
                 className="rounded-lg"
               >
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
-                
+                <MapResizer />
                 {/* Show marker when location exists */}
                 {location && Array.isArray(location) && location.length === 2 && (
                   <Marker position={[parseFloat(location[0]), parseFloat(location[1])]}
@@ -438,25 +446,25 @@ export default function RiderDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[
-          { 
-            label: 'TOTAL TERJUAL', 
-            value: salesData ? salesData.jumlah_produk_terjual : '0', 
-            unit: 'pcs' 
+          {
+            label: 'TOTAL TERJUAL',
+            value: salesData ? salesData.jumlah_produk_terjual : '0',
+            unit: 'pcs'
           },
-          { 
-            label: 'TOTAL PENDAPATAN', 
-            value: salesData ? `Rp ${(salesData.total_pendapatan || 0).toLocaleString('id-ID')}` : 'Rp 0', 
-            unit: '' 
+          {
+            label: 'TOTAL PENDAPATAN',
+            value: salesData ? `Rp ${(salesData.total_pendapatan || 0).toLocaleString('id-ID')}` : 'Rp 0',
+            unit: ''
           },
-          { 
-            label: 'SISA BAGUS', 
-            value: salesData ? salesData.sisa_stok : '0', 
-            unit: 'pcs' 
+          {
+            label: 'SISA BAGUS',
+            value: salesData ? salesData.sisa_stok : '0',
+            unit: 'pcs'
           },
-          { 
-            label: 'TOTAL BASI', 
-            value: salesData ? salesData.jumlah_susu_basi : '0', 
-            unit: 'pcs' 
+          {
+            label: 'TOTAL BASI',
+            value: salesData ? salesData.jumlah_susu_basi : '0',
+            unit: 'pcs'
           },
         ].map((stat, i) => (
           <div key={i} className="bg-white border-4 border-gray-900 rounded-2xl p-6 shadow-[6px_6px_0_0_rgba(17,24,39,1)] flex flex-col justify-between hover:-translate-y-1 hover:shadow-[8px_8px_0_0_rgba(17,24,39,1)] transition-all">
@@ -469,74 +477,10 @@ export default function RiderDashboard() {
         ))}
       </div>
 
-      {/* Products Section */}
-      <div className="mb-10">
-        <h3 className="text-2xl font-black text-gray-900 mb-6 uppercase tracking-widest">Status Produk</h3>
-        {riderProducts.length === 0 ? (
-          <div className="bg-white border-4 border-gray-900 rounded-2xl p-8 text-center text-gray-600 font-medium">
-            Tidak ada data produk tersedia
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {riderProducts.map((product) => (
-              <div key={product.id_menu} className="bg-white border-4 border-gray-900 rounded-2xl overflow-hidden shadow-[6px_6px_0_0_rgba(17,24,39,1)] hover:-translate-y-1 hover:shadow-[8px_8px_0_0_rgba(17,24,39,1)] transition-all">
-                {/* Product Image */}
-                <div className="relative h-40 bg-gray-200 overflow-hidden border-b-4 border-gray-900">
-                  {product.gambar_menu ? (
-                    <img 
-                      src={`/drive-download-20260512T105721Z-3-001/${product.gambar_menu}`}
-                      alt={product.nama_menu}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160"%3E%3Crect fill="%23d1d5db" width="200" height="160"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%23666" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-300">
-                      <span className="text-gray-500 text-sm">Tidak ada gambar</span>
-                    </div>
-                  )}
-                </div>
 
-                {/* Product Info */}
-                <div className="p-4">
-                  <h4 className="text-lg font-black text-gray-900 mb-2 truncate">{product.nama_menu}</h4>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{product.deskripsi || 'Tidak ada deskripsi'}</p>
-                  
-                  {/* Stock Info */}
-                  <div className="flex gap-4 mb-4">
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-gray-500 uppercase mb-1">Stok Bawa</p>
-                      <p className="text-xl font-black text-gray-900">{product.stokBawa || 0}</p>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-gray-500 uppercase mb-1">Sisa Stok</p>
-                      <p className="text-xl font-black text-gray-900">{salesData ? (salesData.sisa_stok || 0) : product.stokBawa}</p>
-                    </div>
-                  </div>
-
-                  {/* Price */}
-                  <div className="bg-[#fdd835] border-2 border-gray-900 rounded-lg p-2 text-center">
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Harga</p>
-                    <p className="text-lg font-black text-gray-900">Rp {(product.harga || 0).toLocaleString('id-ID')}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Sync Button */}
-      <div className="flex justify-end mb-10">
-        <button 
-          onClick={() => window.location.reload()}
-          className="flex items-center gap-2 bg-[#fdd835] border-4 border-gray-900 px-8 py-3.5 rounded-xl font-bold text-lg shadow-[6px_6px_0_0_rgba(17,24,39,1)] hover:-translate-y-1 hover:shadow-[8px_8px_0_0_rgba(17,24,39,1)] active:translate-y-0 active:shadow-[2px_2px_0_0_rgba(17,24,39,1)] transition-all"
-        >
-          <span className="material-symbols-outlined font-bold text-xl">sync</span>
-          Sync Data Sekarang
-        </button>
-      </div>
+     
     </div>
   );
 }

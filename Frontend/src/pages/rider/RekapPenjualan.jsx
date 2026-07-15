@@ -9,6 +9,10 @@ export default function RekapPenjualan() {
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState('error');
 
+  // Today submitted state
+  const [todaySubmitted, setTodaySubmitted] = useState(false);
+  const [todayData, setTodayData] = useState(null);
+
   // Form data
   const [paymentMethod, setPaymentMethod] = useState('Transfer QRIS');
   const [riderInfo, setRiderInfo] = useState(null);
@@ -53,6 +57,17 @@ export default function RekapPenjualan() {
           setFormData(initializeFormData(data.menus));
         } else {
           throw new Error(response.message || 'Gagal mendapatkan data');
+        }
+
+        // Check if rider already submitted today
+        try {
+          const todayResponse = await penjualanService.getTodayByRider(riderId);
+          if (todayResponse.success && todayResponse.data) {
+            setTodaySubmitted(true);
+            setTodayData(todayResponse.data);
+          }
+        } catch (_) {
+          // No submission today — form is available
         }
       } catch (err) {
         setError(err.message || 'Terjadi kesalahan saat memuat data');
@@ -128,7 +143,7 @@ export default function RekapPenjualan() {
 
     try {
       setSubmitting(true);
-      
+
       const totals = calculateTotals();
       const setoranCash = parseInt(formData.setoran_cash || 0);
       const setoranQris = parseInt(formData.setoran_qris || 0);
@@ -187,15 +202,17 @@ export default function RekapPenjualan() {
 
       if (response.success) {
         showAlertMessage('Data penjualan berhasil disimpan!', 'success');
-        // Reset form
-        setFormData(initializeFormData(products));
-        setTransferFile(null);
-        setPaymentMethod('Transfer QRIS');
-        
+        setTodaySubmitted(true);
+        setTodayData(response.data);
         // Reload data after 2 seconds
         setTimeout(() => {
           window.location.reload();
         }, 2000);
+      } else if (response.already_submitted) {
+        // Duplicate detected from backend
+        setTodaySubmitted(true);
+        setTodayData(response.data);
+        showAlertMessage(response.message, 'error');
       } else {
         showAlertMessage(response.message || 'Gagal menyimpan data ke database', 'error');
       }
@@ -226,7 +243,7 @@ export default function RekapPenjualan() {
       <div className="mb-8">
         <h1 className="text-4xl md:text-5xl font-black text-[#fdd835] font-display-lg inline-block tracking-wide">
           <span className='border-b-4 border-[#fdd835] pb-1 shadow-[0_6px_0_0_rgba(17,24,39,1)]'>
-            Rekap
+            Laporan
           </span>
           <span>
             &nbsp; Penjualan
@@ -250,7 +267,9 @@ export default function RekapPenjualan() {
         </div>
         <div>
           <p className="text-xs text-yellow-300 font-bold mb-1">Lokasi GPS</p>
-          <p className="text-white font-medium">Lokasi Aktif</p>
+          <p className="text-white font-medium">
+            {riderInfo?.status_live_location === 'Aktif' ? 'Lokasi Aktif' : 'Lokasi Nonaktif'}
+          </p>
         </div>
         <div>
           <p className="text-xs text-yellow-300 font-bold mb-1">Nama rider</p>
@@ -268,6 +287,81 @@ export default function RekapPenjualan() {
         </div>
       )}
 
+      {/* ── ALREADY SUBMITTED TODAY BANNER ── */}
+      {todaySubmitted ? (
+        <div className="space-y-8">
+          {/* Banner sudah submit */}
+          <div className="bg-[#003d00] border-4 border-gray-900 rounded-2xl p-8 shadow-[6px_6px_0_0_rgba(17,24,39,1)] flex flex-col md:flex-row items-center gap-6">
+            <div className="w-16 h-16 rounded-full bg-green-500 border-4 border-gray-900 flex items-center justify-center shrink-0 shadow-[3px_3px_0_0_rgba(17,24,39,1)]">
+              <span className="material-symbols-outlined text-white text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-[#fdd835] mb-1">Laporan Hari Ini Sudah Dikirim</h2>
+              <p className="text-green-200 font-medium text-sm">
+                Kamu sudah mengisi laporan penjualan hari ini.
+                Laporan hanya bisa diisi <span className="font-black text-white">1 kali per hari</span>.
+              </p>
+            </div>
+          </div>
+
+          {/* Ringkasan data yang sudah disubmit */}
+          {todayData && (
+            <div className="bg-[#1d4ed8] border-4 border-gray-900 rounded-2xl p-6 shadow-[6px_6px_0_0_rgba(17,24,39,1)]">
+              <h2 className="text-white font-bold text-lg mb-6 flex items-center gap-2 border-b-2 border-blue-500 pb-4">
+                <span className="text-[#fdd835] material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
+                Ringkasan Laporan Hari Ini
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="bg-white border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col">
+                  <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Total Terjual</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-black text-gray-900">{todayData.jumlah_produk_terjual || 0}</span>
+                    <span className="text-xs font-bold text-gray-500">pcs</span>
+                  </div>
+                </div>
+                <div className="bg-white border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col">
+                  <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Sisa Stok</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-black text-gray-900">{todayData.sisa_stok || 0}</span>
+                    <span className="text-xs font-bold text-gray-500">pcs</span>
+                  </div>
+                </div>
+                <div className="bg-white border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col">
+                  <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Susu Basi</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-black text-gray-900">{todayData.jumlah_susu_basi || 0}</span>
+                    <span className="text-xs font-bold text-gray-500">pcs</span>
+                  </div>
+                </div>
+                <div className="bg-white border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col">
+                  <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Kemasan Rusak</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-black text-gray-900">{todayData.jumlah_susu_rusak || 0}</span>
+                    <span className="text-xs font-bold text-gray-500">pcs</span>
+                  </div>
+                </div>
+                <div className="bg-[#fdd835] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col col-span-2 lg:col-span-1">
+                  <h3 className="text-[10px] font-black text-gray-700 uppercase tracking-widest mb-2">Total Pendapatan</h3>
+                  <div className="flex items-baseline gap-1 mt-auto">
+                    <span className="text-xl font-black text-gray-900">Rp {(todayData.total_pendapatan || 0).toLocaleString('id-ID')}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-6">
+                <div className="bg-white/10 border border-blue-400 rounded-xl px-4 py-3">
+                  <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest mb-1">Setoran Cash</p>
+                  <p className="text-white font-black">Rp {(todayData.setoran_cash || 0).toLocaleString('id-ID')}</p>
+                </div>
+                <div className="bg-white/10 border border-blue-400 rounded-xl px-4 py-3">
+                  <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest mb-1">Setoran QRIS</p>
+                  <p className="text-white font-black">Rp {(todayData.setoran_qris || 0).toLocaleString('id-ID')}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
       {/* Stok Bawa Hari Ini */}
       <div className="bg-[#1d4ed8] border-4 border-gray-900 rounded-2xl p-6 shadow-[6px_6px_0_0_rgba(17,24,39,1)] mb-8">
         <h2 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
@@ -290,13 +384,14 @@ export default function RekapPenjualan() {
 
       {/* Data Penjualan Per Menu */}
       <form onSubmit={handleSubmit}>
-        <div className="bg-[#1d4ed8] border-4 border-gray-900 rounded-2xl p-6 shadow-[6px_6px_0_0_rgba(17,24,39,1)] mb-8 overflow-x-auto">
+        <div className="bg-[#1d4ed8] border-4 border-gray-900 rounded-2xl p-6 shadow-[6px_6px_0_0_rgba(17,24,39,1)] mb-8">
           <h2 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
             <span className="text-[#fdd835] material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>list_alt</span>
             Data Penjualan Per Menu
           </h2>
 
-          <div className="bg-white border-2 border-gray-900 rounded-xl overflow-hidden min-w-[700px]">
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-white border-2 border-gray-900 rounded-xl overflow-hidden">
             <div className="grid grid-cols-4 gap-4 p-4 border-b-2 border-gray-900">
               <div className="font-bold text-xs uppercase tracking-wider text-gray-800">MENU & HARGA</div>
               <div className="font-bold text-xs uppercase tracking-wider text-gray-800 text-center">JUMLAH TERJUAL</div>
@@ -348,6 +443,63 @@ export default function RekapPenjualan() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="block md:hidden space-y-4">
+            {products.map(product => (
+              <div key={product.id} className="bg-white border-2 border-gray-900 rounded-xl p-4 flex flex-col gap-3 shadow-[2px_2px_0_0_rgba(17,24,39,1)] text-left">
+                <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">{product.name}</p>
+                    <p className="text-xs text-gray-500 font-bold">Rp {product.price.toLocaleString('id-ID')}</p>
+                  </div>
+                  <span className="bg-blue-100 text-blue-800 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-blue-300">
+                    Bawa: {product.stokBawa} pcs
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="flex flex-col">
+                    <label className="text-[9px] font-black text-gray-500 uppercase mb-1 text-center">Terjual</label>
+                    <input
+                      type="number"
+                      name={`terjual_${product.id}`}
+                      value={formData[`terjual_${product.id}`] || 0}
+                      onChange={handleInputChange}
+                      min={0}
+                      max={product.stokBawa}
+                      required
+                      className="w-full bg-white border-2 border-gray-900 rounded p-1.5 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="text-[9px] font-black text-gray-500 uppercase mb-1 text-center">Basi</label>
+                    <input
+                      type="number"
+                      name={`basi_${product.id}`}
+                      value={formData[`basi_${product.id}`] || 0}
+                      onChange={handleInputChange}
+                      min={0}
+                      max={product.stokBawa}
+                      className="w-full bg-white border-2 border-gray-900 rounded p-1.5 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="text-[9px] font-black text-gray-500 uppercase mb-1 text-center">Rusak</label>
+                    <input
+                      type="number"
+                      name={`rusak_${product.id}`}
+                      value={formData[`rusak_${product.id}`] || 0}
+                      onChange={handleInputChange}
+                      min={0}
+                      max={product.stokBawa}
+                      className="w-full bg-white border-2 border-gray-900 rounded p-1.5 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -401,19 +553,17 @@ export default function RekapPenjualan() {
             {paymentMethod === 'Transfer QRIS' && (
               <div className="flex-1">
                 <p className="text-blue-100 text-sm mb-3">Unggah Bukti Transfer <span className="text-red-400">*</span></p>
-                <label className={`block border-2 border-dashed rounded-xl flex flex-col items-center justify-center h-40 cursor-pointer transition-colors ${
-                  transferFile 
-                    ? 'border-green-400 bg-green-900 hover:bg-green-800' 
-                    : 'border-gray-400 bg-[#0f2c7a] hover:bg-blue-900'
-                }`}>
+                <label className={`block border-2 border-dashed rounded-xl flex flex-col items-center justify-center h-40 cursor-pointer transition-colors ${transferFile
+                  ? 'border-green-400 bg-green-900 hover:bg-green-800'
+                  : 'border-gray-400 bg-[#0f2c7a] hover:bg-blue-900'
+                  }`}>
                   <span className="material-symbols-outlined text-white text-3xl mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>
                     {transferFile ? 'check_circle' : 'upload_file'}
                   </span>
-                  <p className={`text-sm ${
-                    transferFile 
-                      ? 'text-green-200 font-bold' 
-                      : 'text-blue-200'
-                  }`}>
+                  <p className={`text-sm ${transferFile
+                    ? 'text-green-200 font-bold'
+                    : 'text-blue-200'
+                    }`}>
                     {transferFile ? `✓ ${transferFile.name}` : 'Klik atau drag file ke sini'}
                   </p>
                   <p className="text-xs text-gray-300 mt-1">Max 2MB (JPG, PNG)</p>
@@ -451,62 +601,66 @@ export default function RekapPenjualan() {
           </button>
         </div>
       </form>
+        </>
+      )}
 
-      {/* Rekap Penjualan Terakhir dari Database */}
-      <div className="mb-8">
-        {lastRecap && (
-          <div>
-            <div className="mb-6">
-              <div className="inline-flex items-center gap-2 bg-[#1d4ed8] border-2 border-gray-900 rounded-lg px-4 py-2 text-white font-bold shadow-[3px_3px_0_0_rgba(17,24,39,1)] text-sm">
-                <span className="material-symbols-outlined text-lg">receipt_long</span>
-                Rekap Penjualan Terakhir - {lastRecap.tanggal}
+      {/* Rekap Penjualan Terakhir dari Database — hanya tampil kalau belum submit hari ini */}
+      {!todaySubmitted && (
+        <div className="mb-8">
+          {lastRecap && (
+            <div>
+              <div className="mb-6">
+                <div className="inline-flex items-center gap-2 bg-[#1d4ed8] border-2 border-gray-900 rounded-lg px-4 py-2 text-white font-bold shadow-[3px_3px_0_0_rgba(17,24,39,1)] text-sm">
+                  <span className="material-symbols-outlined text-lg">receipt_long</span>
+                  Rekap Penjualan Terakhir - {lastRecap.tanggal}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="bg-[#e8f5e9] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
+                  <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">TOTAL TERJUAL</h3>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-black text-gray-900 tracking-tight">{lastRecap.totalTerjual || 0}</span>
+                    <span className="text-xs font-bold text-gray-500">pcs</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#e8f5e9] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
+                  <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">SISA STOK</h3>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-black text-gray-900 tracking-tight">{lastRecap.sisaStok || 0}</span>
+                    <span className="text-xs font-bold text-gray-500">pcs</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#e8f5e9] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
+                  <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">TOTAL SUSU BASI</h3>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-black text-gray-900 tracking-tight">{lastRecap.susuBasi || 0}</span>
+                    <span className="text-xs font-bold text-gray-500">pcs</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#e8f5e9] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
+                  <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">KEMASAN RUSAK</h3>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-black text-gray-900 tracking-tight">{lastRecap.kemasanRusak || 0}</span>
+                    <span className="text-xs font-bold text-gray-500">pcs</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#e8f5e9] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col justify-between col-span-2 lg:col-span-1">
+                  <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">TOTAL PENDAPATAN</h3>
+                  <div className="flex items-baseline gap-1.5 mt-auto">
+                    <span className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">
+                      Rp {(lastRecap.totalPendapatan || 0).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="bg-[#e8f5e9] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
-                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">TOTAL TERJUAL</h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-gray-900 tracking-tight">{lastRecap.totalTerjual || 0}</span>
-                  <span className="text-xs font-bold text-gray-500">pcs</span>
-                </div>
-              </div>
-
-              <div className="bg-[#e8f5e9] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
-                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">SISA STOK</h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-gray-900 tracking-tight">{lastRecap.sisaStok || 0}</span>
-                  <span className="text-xs font-bold text-gray-500">pcs</span>
-                </div>
-              </div>
-
-              <div className="bg-[#e8f5e9] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
-                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">TOTAL SUSU BASI</h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-gray-900 tracking-tight">{lastRecap.susuBasi || 0}</span>
-                  <span className="text-xs font-bold text-gray-500">pcs</span>
-                </div>
-              </div>
-
-              <div className="bg-[#e8f5e9] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
-                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">KEMASAN RUSAK</h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-gray-900 tracking-tight">{lastRecap.kemasanRusak || 0}</span>
-                  <span className="text-xs font-bold text-gray-500">pcs</span>
-                </div>
-              </div>
-
-              <div className="bg-[#e8f5e9] border-4 border-gray-900 rounded-xl p-5 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex flex-col justify-between col-span-2 lg:col-span-1">
-                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">TOTAL PENDAPATAN</h3>
-                <div className="flex items-baseline gap-1.5 mt-auto">
-                  <span className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">
-                    Rp {(lastRecap.totalPendapatan || 0).toLocaleString('id-ID')}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

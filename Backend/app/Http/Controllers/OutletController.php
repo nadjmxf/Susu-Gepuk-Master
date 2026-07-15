@@ -47,6 +47,21 @@ class OutletController extends Controller
             'longitude' => 'nullable|numeric',
         ]);
 
+        // Pastikan 1 rider hanya bisa ditugaskan ke 1 unit Outlet Bergerak
+        if (!empty($validated['id_rider']) && $validated['jenis_outlet'] === 'Outlet Bergerak') {
+            $alreadyAssigned = Outlet::where('id_rider', $validated['id_rider'])
+                ->where('jenis_outlet', 'Outlet Bergerak')
+                ->exists();
+
+            if ($alreadyAssigned) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Rider ini sudah ditugaskan di unit SOTR lain. Satu rider hanya bisa ditugaskan ke satu unit SOTR.',
+                    'already_assigned' => true,
+                ], 409);
+            }
+        }
+
         $outlet = Outlet::create($validated);
         
         // Load relation for response
@@ -80,6 +95,23 @@ class OutletController extends Controller
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
         ]);
+
+        // Pastikan 1 rider hanya bisa ditugaskan ke 1 unit Outlet Bergerak
+        $jenisOutlet = $validated['jenis_outlet'] ?? $outlet->jenis_outlet;
+        if (!empty($validated['id_rider']) && $jenisOutlet === 'Outlet Bergerak') {
+            $alreadyAssigned = Outlet::where('id_rider', $validated['id_rider'])
+                ->where('jenis_outlet', 'Outlet Bergerak')
+                ->where('id_outlet', '!=', $id)
+                ->exists();
+
+            if ($alreadyAssigned) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Rider ini sudah ditugaskan di unit SOTR lain. Satu rider hanya bisa ditugaskan ke satu unit SOTR.',
+                    'already_assigned' => true,
+                ], 409);
+            }
+        }
 
         $outlet->update($validated);
         

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Rider;
 use App\Models\Lokasi;
+use App\Models\Aktivitas;
 
 class RiderController extends Controller
 {
@@ -30,6 +31,15 @@ class RiderController extends Controller
             }
             
             $rider->status_kehadiran = $statusKehadiran;
+
+            // Get latest location coordinates
+            $lastLocation = \App\Models\Lokasi::where('id_rider', $rider->id_rider)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            $rider->latitude = $lastLocation ? floatval($lastLocation->latitude) : null;
+            $rider->longitude = $lastLocation ? floatval($lastLocation->longitude) : null;
+
             return $rider;
         });
 
@@ -62,7 +72,7 @@ class RiderController extends Controller
         $totalPendapatan = \App\Models\Penjualan::where('id_rider', $id)
             ->whereMonth('tanggal_penjualan', $currentMonth)
             ->whereYear('tanggal_penjualan', $currentYear)
-            ->sum('total_pendapatan');
+            ->sum(\DB::raw('setoran_cash + setoran_qris'));
 
         $targetPendapatan = 15000000; // default 15 million
 
@@ -350,9 +360,37 @@ class RiderController extends Controller
             ], 404);
         }
 
+        $validated = $request->validate([
+            'tanggal_aktivitas' => 'required|date',
+            'status_aktivitas' => 'required|in:Berjualan,Izin,Sakit,Tidak Ada Aktivitas',
+            'keterangan' => 'nullable|string',
+        ]);
+
+        // Check if activity already exists for this rider on this date
+        $existing = Aktivitas::where('id_rider', $id)
+            ->where('tanggal_aktivitas', $validated['tanggal_aktivitas'])
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Absensi untuk tanggal tersebut sudah tercatat. Rider hanya bisa input 1 kali per hari.',
+            ], 400);
+        }
+
+        // Create new
+        $aktivitas = Aktivitas::create([
+            'id_rider' => $id,
+            'tanggal_aktivitas' => $validated['tanggal_aktivitas'],
+            'status_aktivitas' => $validated['status_aktivitas'],
+            'keterangan' => $validated['keterangan'] ?? null,
+            'created_at' => now(),
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'Aktivitas berhasil dicatat',
-        ]);
+            'message' => 'Kehadiran berhasil dicatat',
+            'data' => $aktivitas,
+        ], 201);
     }
 }

@@ -17,17 +17,59 @@ export default function OutletLocations() {
         const response = await outletService.getAllOutlets();
         
         if (response.success && response.data) {
+          // Helper to parse keterangan_lokasi
+          const parseLokasiLocal = (keterangan) => {
+            if (!keterangan) return { jam_buka: '08:00', jam_tutup: '22:00', lokasi_detail: '' };
+            const match = keterangan.match(/^\[(\d{2}:\d{2})-(\d{2}:\d{2})\]\s*(.*)/);
+            if (match) {
+              return {
+                jam_buka: match[1],
+                jam_tutup: match[2],
+                lokasi_detail: match[3]
+              };
+            }
+            return {
+              jam_buka: '08:00',
+              jam_tutup: '22:00',
+              lokasi_detail: keterangan
+            };
+          };
+
+          // Helper to check if open
+          const checkIsOpen = (jamBuka, jamTutup, statusOperasional) => {
+            if (statusOperasional === 'Tutup' || statusOperasional === 'TUTUP') {
+              return false;
+            }
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const currentHHMM = `${hh}:${mm}`;
+
+            if (jamBuka <= jamTutup) {
+              return currentHHMM >= jamBuka && currentHHMM <= jamTutup;
+            } else {
+              return currentHHMM >= jamBuka || currentHHMM <= jamTutup;
+            }
+          };
+
           // Map API response to component format
-          const mappedOutlets = response.data.map((outlet) => ({
-            id: outlet.id_outlet,
-            area: outlet.area,
-            name: outlet.nama_outlet,
-            status: outlet.status_operasional === 'Buka' 
-              ? `BUKA SEKARANG • ${outlet.keterangan_lokasi}`
-              : `TUTUP • BUKA BESOK ${outlet.keterangan_lokasi}`,
-            isOpen: outlet.status_operasional === 'Buka',
-            mapsUrl: outlet.link_lokasi,
-          }));
+          const mappedOutlets = response.data
+            .filter((outlet) => outlet.jenis_outlet === 'Outlet Tetap')
+            .map((outlet) => {
+              const { jam_buka, jam_tutup, lokasi_detail } = parseLokasiLocal(outlet.keterangan_lokasi);
+              const isOpen = checkIsOpen(jam_buka, jam_tutup, outlet.status_operasional);
+              
+              return {
+                id: outlet.id_outlet,
+                area: outlet.area,
+                name: outlet.nama_outlet,
+                status: isOpen 
+                  ? `BUKA SEKARANG • Jam Operasional: ${jam_buka} - ${jam_tutup}${lokasi_detail ? ` • ${lokasi_detail}` : ''}`
+                  : `TUTUP (Jam Operasional: ${jam_buka} - ${jam_tutup})${lokasi_detail ? ` • ${lokasi_detail}` : ''}`,
+                isOpen,
+                mapsUrl: outlet.link_lokasi,
+              };
+            });
           setOutlets(mappedOutlets);
         } else {
           setError('Gagal mengambil data outlet');

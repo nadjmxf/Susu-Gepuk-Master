@@ -37,39 +37,39 @@ function App() {
     <Router>
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/outlets" element={<OutletLocation />} />
-        <Route path="/sotr" element={<SotrLocation />} />
-        <Route path="/admin/login" element={<Login />} />
-        <Route path="/admin/register" element={<Register />} />
-        <Route path="/admin/forgot" element={<ForgotPassword />} />
-        
-        {/* Rider Routes */}
-        <Route path="/rider/login" element={<RiderLogin />} />
-        <Route path="/rider" element={
-          <RiderPrivateRoute>
-            <RiderLayout />
-          </RiderPrivateRoute>
-        }>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<RiderDashboard />} />
-          <Route path="rekap" element={<RekapPenjualan />} />
-          <Route path="riwayat" element={<RiwayatPenjualan />} />
-        </Route>
+          <Route path="/" element={<Landing />} />
+          <Route path="/outlets" element={<OutletLocation />} />
+          <Route path="/sotr" element={<SotrLocation />} />
+          <Route path="/admin/login" element={<Login />} />
+          <Route path="/admin/register" element={<Register />} />
+          <Route path="/admin/forgot" element={<ForgotPassword />} />
 
-        {/* Admin Routes */}
-        <Route path="/admin" element={
-          <PrivateRoute>
-            <AdminLayout />
-          </PrivateRoute>
-        }>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="riders" element={<AdminRiders />} />
-          <Route path="outlets" element={<AdminOutlets />} />
-          <Route path="reports" element={<AdminReports />} />
-        </Route>
-      </Routes>
+          {/* Rider Routes */}
+          <Route path="/rider/login" element={<RiderLogin />} />
+          <Route path="/rider" element={
+            <RiderPrivateRoute>
+              <RiderLayout />
+            </RiderPrivateRoute>
+          }>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<RiderDashboard />} />
+            <Route path="Rekap" element={<RekapPenjualan />} />
+            <Route path="riwayat" element={<RiwayatPenjualan />} />
+          </Route>
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={
+            <PrivateRoute>
+              <AdminLayout />
+            </PrivateRoute>
+          }>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="riders" element={<AdminRiders />} />
+            <Route path="outlets" element={<AdminOutlets />} />
+            <Route path="reports" element={<AdminReports />} />
+          </Route>
+        </Routes>
       </Suspense>
     </Router>
   );

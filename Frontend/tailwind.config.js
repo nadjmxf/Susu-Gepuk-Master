@@ -79,7 +79,8 @@ export default {
         "sticker-sm": ["Plus Jakarta Sans"],
         "headline-md": ["Plus Jakarta Sans"],
         "display-xl": ["Plus Jakarta Sans"],
-        "display-lg": ["Plus Jakarta Sans"]
+        "display-lg": ["Plus Jakarta Sans"],
+        "rocko": ["RockoUltraFLF"]
       },
       "fontSize": {
         "body-lg": ["18px", { "lineHeight": "1.5", "fontWeight": "500" }],

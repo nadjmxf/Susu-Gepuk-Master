@@ -79,5 +79,45 @@ class OutletSeeder extends Seeder
             'latitude' => 0.42890000,
             'longitude' => 101.44210000,
         ]);
+
+        // SOTR (Outlet Bergerak)
+        \App\Models\Outlet::create([
+            'id_admin' => 1,
+            'id_rider' => 1, // Budi Santoso
+            'nama_outlet' => 'SOTR-01 (Budi)',
+            'area' => 'Marpoyan - Simpang Tiga',
+            'jenis_outlet' => 'Outlet Bergerak',
+            'link_lokasi' => null,
+            'keterangan_lokasi' => 'Mobile Unit',
+            'status_operasional' => 'Buka',
+            'latitude' => 0.50740000,
+            'longitude' => 101.44780000,
+        ]);
+
+        \App\Models\Outlet::create([
+            'id_admin' => 1,
+            'id_rider' => 2, // Ahmad Pratama
+            'nama_outlet' => 'SOTR-02 (Ahmad)',
+            'area' => 'Panam',
+            'jenis_outlet' => 'Outlet Bergerak',
+            'link_lokasi' => null,
+            'keterangan_lokasi' => 'Mobile Unit',
+            'status_operasional' => 'Buka',
+            'latitude' => 0.47280000,
+            'longitude' => 101.37890000,
+        ]);
+
+        \App\Models\Outlet::create([
+            'id_admin' => 1,
+            'id_rider' => 3, // Reza Wijaya
+            'nama_outlet' => 'SOTR-03 (Reza)',
+            'area' => 'Arifin Ahmad',
+            'jenis_outlet' => 'Outlet Bergerak',
+            'link_lokasi' => null,
+            'keterangan_lokasi' => 'Mobile Unit',
+            'status_operasional' => 'Tutup',
+            'latitude' => 0.48500000,
+            'longitude' => 101.42500000,
+        ]);
     }
 }

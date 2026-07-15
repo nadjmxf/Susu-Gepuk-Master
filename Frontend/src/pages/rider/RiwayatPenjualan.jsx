@@ -7,24 +7,33 @@ export default function RiwayatPenjualan() {
   const [error, setError] = useState(null);
   const [riwayatData, setRiwayatData] = useState([]);
   const [pagination, setPagination] = useState(null);
+  const [summaryData, setSummaryData] = useState(null);
+  const [filterMonth, setFilterMonth] = useState('Juni');
+  const [filterYear, setFilterYear] = useState('2026');
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const riderId = user.id_rider || 1;
 
   useEffect(() => {
-    fetchData(currentPage);
-  }, [currentPage, riderId]);
+    fetchData(currentPage, filterMonth, filterYear);
+  }, [currentPage, riderId, filterMonth, filterYear]);
 
-  const fetchData = async (page) => {
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterMonth, filterYear]);
+
+  const fetchData = async (page, month, year) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await penjualanService.getHistoryByRider(riderId, page);
+      const response = await penjualanService.getHistoryByRider(riderId, page, month, year);
 
       if (response.success) {
         setRiwayatData(response.data);
         setPagination(response.pagination);
+        setSummaryData(response.summary);
       } else {
         throw new Error(response.message || 'Gagal memuat riwayat');
       }
@@ -69,15 +78,46 @@ export default function RiwayatPenjualan() {
   return (
     <div className="animate-fade-in w-full pb-10">
       {/* Title */}
-      <div className="mb-8">
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-4xl md:text-5xl font-black text-[#fdd835] font-display-lg inline-block tracking-wide">
           <span className="border-b-4 border-[#fdd835] pb-1 shadow-[0_6px_0_0_rgba(17,24,39,1)]">
             Riwayat
           </span>
           <span>
-            &nbsp; Aktivitas
+            &nbsp; Penjualan
           </span>
         </h1>
+        
+        {/* Dropdowns */}
+        <div className="flex gap-2">
+          <select 
+            value={filterMonth} 
+            onChange={(e) => setFilterMonth(e.target.value)}
+            className="bg-white border-[3px] border-black rounded-xl px-4 py-1.5 text-sm font-black text-black focus:outline-none focus:ring-0 cursor-pointer shadow-[2px_2px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0_0_#000] transition-all"
+          >
+            <option value="Januari">Januari</option>
+            <option value="Februari">Februari</option>
+            <option value="Maret">Maret</option>
+            <option value="April">April</option>
+            <option value="Mei">Mei</option>
+            <option value="Juni">Juni</option>
+            <option value="Juli">Juli</option>
+            <option value="Agustus">Agustus</option>
+            <option value="September">September</option>
+            <option value="Oktober">Oktober</option>
+            <option value="November">November</option>
+            <option value="Desember">Desember</option>
+          </select>
+          <select 
+            value={filterYear} 
+            onChange={(e) => setFilterYear(e.target.value)}
+            className="bg-white border-[3px] border-black rounded-xl px-4 py-1.5 text-sm font-black text-black focus:outline-none focus:ring-0 cursor-pointer shadow-[2px_2px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0_0_#000] transition-all"
+          >
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+        </div>
       </div>
 
       {/* Error Alert */}
@@ -101,7 +141,7 @@ export default function RiwayatPenjualan() {
         <div className="bg-white border-4 border-gray-900 rounded-xl p-5 shadow-[6px_6px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
           <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">TOTAL TRANSAKSI</h3>
           <div className="flex items-baseline gap-1.5 mt-auto">
-            <span className="text-4xl font-black text-gray-900 tracking-tight">{totalItems}</span>
+            <span className="text-4xl font-black text-gray-900 tracking-tight">{summaryData?.total_transaksi || 0}</span>
             <span className="text-sm font-bold text-gray-500">kali</span>
           </div>
         </div>
@@ -109,7 +149,7 @@ export default function RiwayatPenjualan() {
         <div className="bg-white border-4 border-gray-900 rounded-xl p-5 shadow-[6px_6px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
           <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">TOTAL PRODUK</h3>
           <div className="flex items-baseline gap-1.5 mt-auto">
-            <span className="text-4xl font-black text-gray-900 tracking-tight">{riwayatData.reduce((sum, item) => sum + (item.jumlah_produk_terjual || 0), 0)}</span>
+            <span className="text-4xl font-black text-gray-900 tracking-tight">{summaryData?.total_produk || 0}</span>
             <span className="text-sm font-bold text-gray-500">pcs</span>
           </div>
         </div>
@@ -117,7 +157,7 @@ export default function RiwayatPenjualan() {
         <div className="bg-white border-4 border-gray-900 rounded-xl p-5 shadow-[6px_6px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
           <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">TOTAL SUSU BASI</h3>
           <div className="flex items-baseline gap-1.5 mt-auto">
-            <span className="text-4xl font-black text-gray-900 tracking-tight">{riwayatData.reduce((sum, item) => sum + (item.jumlah_susu_basi || 0), 0)}</span>
+            <span className="text-4xl font-black text-gray-900 tracking-tight">{summaryData?.total_susu_basi || 0}</span>
             <span className="text-sm font-bold text-gray-500">pcs</span>
           </div>
         </div>
@@ -125,7 +165,7 @@ export default function RiwayatPenjualan() {
         <div className="bg-white border-4 border-gray-900 rounded-xl p-5 shadow-[6px_6px_0_0_rgba(17,24,39,1)] flex flex-col justify-between">
           <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">KEMASAN RUSAK</h3>
           <div className="flex items-baseline gap-1.5 mt-auto">
-            <span className="text-4xl font-black text-gray-900 tracking-tight">{riwayatData.reduce((sum, item) => sum + (item.jumlah_susu_rusak || 0), 0)}</span>
+            <span className="text-4xl font-black text-gray-900 tracking-tight">{summaryData?.total_susu_rusak || 0}</span>
             <span className="text-sm font-bold text-gray-500">pcs</span>
           </div>
         </div>
@@ -133,7 +173,7 @@ export default function RiwayatPenjualan() {
         <div className="bg-white border-4 border-gray-900 rounded-xl p-5 shadow-[6px_6px_0_0_rgba(17,24,39,1)] flex flex-col justify-between col-span-2 lg:col-span-1">
           <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">TOTAL PENDAPATAN</h3>
           <div className="flex items-baseline gap-1.5 mt-auto">
-            <span className="text-xl lg:text-2xl font-black text-gray-900 tracking-tight">Rp {riwayatData.reduce((sum, item) => sum + (item.total_pendapatan || 0), 0).toLocaleString('id-ID')}</span>
+            <span className="text-xl lg:text-2xl font-black text-gray-900 tracking-tight">Rp {(summaryData?.total_pendapatan || 0).toLocaleString('id-ID')}</span>
           </div>
         </div>
       </div>
@@ -148,8 +188,8 @@ export default function RiwayatPenjualan() {
           </div>
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto bg-white">
+        {/* Table Content - Desktop */}
+        <div className="hidden md:block overflow-x-auto bg-white">
           <div className="min-w-[800px]">
             {/* Columns */}
             <div className="grid grid-cols-12 gap-4 p-5 border-b-[3px] border-gray-900 bg-white">
@@ -200,6 +240,44 @@ export default function RiwayatPenjualan() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Card Content - Mobile */}
+        <div className="block md:hidden divide-y-2 divide-gray-200 bg-white">
+          {riwayatData.length === 0 ? (
+            <div className="p-8 text-center text-gray-600">
+              <p className="font-bold">Belum ada riwayat penjualan</p>
+            </div>
+          ) : (
+            riwayatData.map((item) => (
+              <div key={item.id_penjualan} className="p-4 flex flex-col gap-3 text-left">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-900 font-black text-sm">{formatDate(item.tanggal_penjualan)}</span>
+                  <span className="font-black text-green-700 text-base">
+                    Rp {(item.total_pendapatan || 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="bg-green-50 border border-green-200 rounded p-1.5 flex flex-col items-center">
+                    <span className="text-[9px] text-gray-400 font-bold uppercase mb-0.5">Terjual</span>
+                    <span className="font-bold text-green-700">{item.jumlah_produk_terjual} pcs</span>
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-1.5 flex flex-col items-center">
+                    <span className="text-[9px] text-gray-400 font-bold uppercase mb-0.5">Basi</span>
+                    <span className="font-bold text-yellow-700">{item.jumlah_susu_basi} pcs</span>
+                  </div>
+                  <div className="bg-red-50 border border-red-200 rounded p-1.5 flex flex-col items-center">
+                    <span className="text-[9px] text-gray-400 font-bold uppercase mb-0.5">Rusak</span>
+                    <span className="font-bold text-red-700">{item.jumlah_susu_rusak} pcs</span>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-200 rounded p-1.5 flex flex-col items-center">
+                    <span className="text-[9px] text-gray-400 font-bold uppercase mb-0.5">Sisa</span>
+                    <span className="font-bold text-gray-700">{item.sisa_stok} pcs</span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Pagination */}

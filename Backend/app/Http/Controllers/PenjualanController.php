@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Penjualan;
 use App\Models\Menu;
 use App\Models\Rider;
+use App\Models\Aktivitas;
 use Carbon\Carbon;
 
 class PenjualanController extends Controller
@@ -210,6 +211,7 @@ class PenjualanController extends Controller
                         'id' => $rider->id_rider,
                         'name' => $rider->nama_rider,
                         'phone' => $rider->no_hp,
+                        'status_live_location' => $rider->status_live_location,
                     ],
                     'today' => Carbon::parse($today)->format('d M Y'),
                     'menus' => $menus,
@@ -248,6 +250,21 @@ class PenjualanController extends Controller
                 'bukti_transfer' => 'nullable|file|mimes:jpg,jpeg,png,gif|max:2048',
             ]);
 
+            // Check if rider has already submitted today
+            $today = Carbon::now()->toDateString();
+            $existing = Penjualan::where('id_rider', $validated['id_rider'])
+                ->where('tanggal_penjualan', $today)
+                ->first();
+
+            if ($existing) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penjualan hari ini sudah pernah diisi. Hanya 1 laporan per hari yang diperbolehkan.',
+                    'already_submitted' => true,
+                    'data' => $existing,
+                ], 409);
+            }
+
             // Validate that at least one payment method has amount
             if ($validated['setoran_cash'] === 0 && $validated['setoran_qris'] === 0) {
                 return response()->json([
@@ -265,6 +282,36 @@ class PenjualanController extends Controller
             }
 
             $penjualan = Penjualan::create($validated);
+
+            // ─── AUTO AKTIVITAS ──────────────────────────────────────────────
+            // Jika rider berhasil submit laporan penjualan hari ini,
+            // otomatis catat status 'Berjualan' di tabel aktivitas.
+            // KECUALI sudah ada record Sakit/Izin yang diset oleh admin
+            // (admin override = prioritas tertinggi).
+            $tanggalLaporan = Carbon::parse($validated['tanggal_penjualan'])->toDateString();
+            $existingAktivitas = Aktivitas::where('id_rider', $validated['id_rider'])
+                ->where('tanggal_aktivitas', $tanggalLaporan)
+                ->first();
+
+            $adminStatuses = ['Sakit', 'Izin']; // Status yg diset admin, tidak boleh ditimpa
+            if (!$existingAktivitas) {
+                // Belum ada record aktivitas → buat baru
+                Aktivitas::create([
+                    'id_rider'          => $validated['id_rider'],
+                    'tanggal_aktivitas' => $tanggalLaporan,
+                    'status_aktivitas'  => 'Berjualan',
+                    'keterangan'        => 'Otomatis: laporan penjualan dikirim',
+                    'created_at'        => now(),
+                ]);
+            } elseif (!in_array($existingAktivitas->status_aktivitas, $adminStatuses)) {
+                // Ada record tapi bukan Sakit/Izin → update ke Berjualan
+                $existingAktivitas->update([
+                    'status_aktivitas' => 'Berjualan',
+                    'keterangan'       => 'Otomatis: laporan penjualan dikirim',
+                ]);
+            }
+            // Jika Sakit/Izin → biarkan, jangan timpa
+            // ─────────────────────────────────────────────────────────────────
 
             return response()->json([
                 'success' => true,
@@ -286,17 +333,45 @@ class PenjualanController extends Controller
     }
 
     // Get penjualan history for a rider (paginated)
-    public function getHistoryByRider($riderId)
+    public function getHistoryByRider(Request $request, $riderId)
     {
         try {
-            $penjualan = Penjualan::where('id_rider', $riderId)
-                ->orderBy('tanggal_penjualan', 'desc')
+            $monthName = $request->query('month');
+            $year = $request->query('year');
+
+            $query = Penjualan::where('id_rider', $riderId);
+
+            if ($monthName && $year) {
+                $monthMap = [
+                    'Januari' => 1, 'Februari' => 2, 'Maret' => 3, 'April' => 4,
+                    'Mei' => 5, 'Juni' => 6, 'Juli' => 7, 'Agustus' => 8,
+                    'September' => 9, 'Oktober' => 10, 'November' => 11, 'Desember' => 12
+                ];
+                $monthNum = isset($monthMap[$monthName]) ? $monthMap[$monthName] : (is_numeric($monthName) ? $monthName : null);
+
+                if ($monthNum) {
+                    $query->whereMonth('tanggal_penjualan', $monthNum);
+                }
+                $query->whereYear('tanggal_penjualan', $year);
+            }
+
+            // Calculate summary before pagination
+            $summary = [
+                'total_transaksi' => $query->count(),
+                'total_produk' => (int) $query->sum('jumlah_produk_terjual'),
+                'total_susu_basi' => (int) $query->sum('jumlah_susu_basi'),
+                'total_susu_rusak' => (int) $query->sum('jumlah_susu_rusak'),
+                'total_pendapatan' => (int) $query->sum('total_pendapatan'),
+            ];
+
+            $penjualan = $query->orderBy('tanggal_penjualan', 'desc')
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
 
             return response()->json([
                 'success' => true,
                 'data' => $penjualan->items(),
+                'summary' => $summary,
                 'pagination' => [
                     'current_page' => $penjualan->currentPage(),
                     'total' => $penjualan->total(),
@@ -312,7 +387,7 @@ class PenjualanController extends Controller
         }
     }
 
-    // Get monthly rekap reports summary for admin panel
+    // Get monthly Rekap reports summary for admin panel
     public function getReportsSummary(Request $request)
     {
         try {
@@ -329,44 +404,44 @@ class PenjualanController extends Controller
             $monthNum = isset($monthMap[$monthName]) ? $monthMap[$monthName] : Carbon::now()->month;
 
             // Query base
-            $query = Penjualan::with('rider')
+            $queryBase = Penjualan::with('rider')
                 ->whereYear('tanggal_penjualan', $year)
                 ->whereMonth('tanggal_penjualan', $monthNum);
 
-            // Calculate metrics sums
-            $totalTerjual = (int) $query->sum('jumlah_produk_terjual');
-            $totalBasi = (int) $query->sum('jumlah_susu_basi');
-            $totalRusak = (int) $query->sum('jumlah_susu_rusak');
-            $totalPendapatan = (int) $query->sum('total_pendapatan');
+            // Calculate metrics sums using the base query
+            $totalTerjual = (int) $queryBase->sum('jumlah_produk_terjual');
+            $totalBasi = (int) $queryBase->sum('jumlah_susu_basi');
+            $totalRusak = (int) $queryBase->sum('jumlah_susu_rusak');
+            // Calculate total pendapatan from the actual setoran so it perfectly matches the table data
+            $totalPendapatan = (int) $queryBase->sum('setoran_cash') + (int) $queryBase->sum('setoran_qris');
 
-            // Daily entries with pagination
-            $penjualans = $query->orderBy('tanggal_penjualan', 'desc')
-                ->orderBy('created_at', 'desc')
-                ->paginate(10);
+            // Daily entries grouped by rider
+            $query = Penjualan::with('rider')
+                ->whereYear('tanggal_penjualan', $year)
+                ->whereMonth('tanggal_penjualan', $monthNum)
+                ->select(
+                    'id_rider',
+                    \DB::raw('SUM(jumlah_produk_terjual + sisa_stok + jumlah_susu_basi + jumlah_susu_rusak) as total_bawa'),
+                    \DB::raw('SUM(jumlah_produk_terjual) as total_terjual'),
+                    \DB::raw('SUM(jumlah_susu_basi) as total_basi'),
+                    \DB::raw('SUM(jumlah_susu_rusak) as total_rusak'),
+                    \DB::raw('SUM(setoran_cash + setoran_qris) as total_setoran')
+                )
+                ->groupBy('id_rider');
+
+            $penjualans = $query->paginate(10);
 
             $formattedData = collect($penjualans->items())->map(function ($item) {
-                $bawa = $item->jumlah_produk_terjual + $item->sisa_stok + $item->jumlah_susu_basi + $item->jumlah_susu_rusak;
-                
-                $metode = 'CASH';
-                if ($item->setoran_qris > 0 && $item->setoran_cash > 0) {
-                    $metode = 'MIXED';
-                } elseif ($item->setoran_qris > 0) {
-                    $metode = 'QRIS';
-                }
-
                 return [
-                    'id' => $item->id_penjualan,
-                    'tanggal' => Carbon::parse($item->tanggal_penjualan)->locale('id')->isoFormat('D MMMM Y'),
-                    'waktu' => Carbon::parse($item->created_at)->format('H:i') . ' WIB',
+                    'id_rider' => $item->id_rider,
                     'rider' => $item->rider ? $item->rider->nama_rider : 'Rider Tidak Dikenal',
                     'unit' => $item->rider ? ($item->rider->area ?: 'SOTR Unit') : 'SOTR Unit',
                     'gps' => $item->rider ? ($item->rider->current_location ?: 'Pekanbaru') : 'Pekanbaru',
-                    'bawa' => $bawa,
-                    'terjual' => $item->jumlah_produk_terjual,
-                    'basi' => $item->jumlah_susu_basi,
-                    'rusak' => $item->jumlah_susu_rusak,
-                    'metode' => $metode,
-                    'setoran' => $item->setoran_cash + $item->setoran_qris,
+                    'bawa' => (int)$item->total_bawa,
+                    'terjual' => (int)$item->total_terjual,
+                    'basi' => (int)$item->total_basi,
+                    'rusak' => (int)$item->total_rusak,
+                    'setoran' => (int)$item->total_setoran,
                 ];
             });
 
@@ -390,6 +465,64 @@ class PenjualanController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengambil data laporan: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Get daily details for a specific rider in a specific month
+    public function getDailyReportByRider(Request $request, $id_rider)
+    {
+        try {
+            $monthName = $request->query('month', 'Juni');
+            $year = $request->query('year', '2026');
+
+            $monthMap = [
+                'Januari' => 1, 'Februari' => 2, 'Maret' => 3, 'April' => 4,
+                'Mei' => 5, 'Juni' => 6, 'Juli' => 7, 'Agustus' => 8,
+                'September' => 9, 'Oktober' => 10, 'November' => 11, 'Desember' => 12
+            ];
+            
+            $monthNum = isset($monthMap[$monthName]) ? $monthMap[$monthName] : Carbon::now()->month;
+
+            $penjualans = Penjualan::where('id_rider', $id_rider)
+                ->whereYear('tanggal_penjualan', $year)
+                ->whereMonth('tanggal_penjualan', $monthNum)
+                ->orderBy('tanggal_penjualan', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $formattedData = $penjualans->map(function ($item) {
+                $bawa = $item->jumlah_produk_terjual + $item->sisa_stok + $item->jumlah_susu_basi + $item->jumlah_susu_rusak;
+                
+                $metode = 'CASH';
+                if ($item->setoran_qris > 0 && $item->setoran_cash > 0) {
+                    $metode = 'MIXED';
+                } elseif ($item->setoran_qris > 0) {
+                    $metode = 'QRIS';
+                }
+
+                return [
+                    'id' => $item->id_penjualan,
+                    'tanggal' => Carbon::parse($item->tanggal_penjualan)->locale('id')->isoFormat('D MMMM Y'),
+                    'waktu' => Carbon::parse($item->created_at)->format('H:i') . ' WIB',
+                    'bawa' => $bawa,
+                    'terjual' => $item->jumlah_produk_terjual,
+                    'basi' => $item->jumlah_susu_basi,
+                    'rusak' => $item->jumlah_susu_rusak,
+                    'metode' => $metode,
+                    'setoran' => $item->setoran_cash + $item->setoran_qris,
+                    'pendapatan_sistem' => (int) $item->total_pendapatan,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedData,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil rincian laporan: ' . $e->getMessage(),
             ], 500);
         }
     }

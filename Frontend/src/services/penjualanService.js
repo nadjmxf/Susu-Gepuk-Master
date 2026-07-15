@@ -54,10 +54,10 @@ const penjualanService = {
   },
 
   // Get penjualan history for rider
-  getHistoryByRider: async (riderId, page = 1) => {
+  getHistoryByRider: async (riderId, page = 1, month, year) => {
     try {
       const response = await api.get(`/penjualan/rider/${riderId}/history`, {
-        params: { page }
+        params: { page, month, year }
       });
       return response.data;
     } catch (error) {
@@ -134,7 +134,22 @@ const penjualanService = {
     } catch (error) {
       throw error.response?.data || {
         success: false,
-        message: 'Gagal mendapatkan rekap data laporan',
+        message: 'Gagal mendapatkan Rekap data laporan',
+      };
+    }
+  },
+
+  // Get daily detail report for a specific rider
+  getDailyReportByRider: async (riderId, month, year) => {
+    try {
+      const response = await api.get(`/penjualan/reports/rider/${riderId}/daily`, {
+        params: { month, year }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || {
+        success: false,
+        message: 'Gagal mendapatkan rincian harian laporan',
       };
     }
   },

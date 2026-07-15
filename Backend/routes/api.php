@@ -78,6 +78,7 @@ Route::apiResource('menu', MenuController::class);
 */
 
 Route::get('/penjualan/reports/summary', [PenjualanController::class, 'getReportsSummary']);
+Route::get('/penjualan/reports/rider/{id}/daily', [PenjualanController::class, 'getDailyReportByRider']);
 Route::apiResource('penjualan', PenjualanController::class);
 Route::get('/penjualan/rider/{id}/latest', [PenjualanController::class, 'getLatestByRider']);
 Route::get('/penjualan/rider/{id}/today', [PenjualanController::class, 'getTodayByRider']);

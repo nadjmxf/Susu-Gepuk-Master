@@ -15,6 +15,7 @@ class Announcement extends Model
         'id_admin',
         'judul',
         'isi',
+        'gambar_announcement',
         'status',
         'tanggal_mulai',
         'tanggal_selesai',

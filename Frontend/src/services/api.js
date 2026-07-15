@@ -23,9 +23,22 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/admin/login';
+      // Don't intercept login endpoints - let the login page handle the error
+      const requestUrl = error.config?.url || '';
+      const isLoginRequest = requestUrl.includes('/login/');
+      
+      if (!isLoginRequest) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // Redirect based on current role
+        const role = localStorage.getItem('role');
+        localStorage.removeItem('role');
+        if (role === 'rider') {
+          window.location.href = '/rider/login';
+        } else {
+          window.location.href = '/admin/login';
+        }
+      }
     }
     return Promise.reject(error);
   }

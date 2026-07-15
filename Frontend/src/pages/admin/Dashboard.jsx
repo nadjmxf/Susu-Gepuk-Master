@@ -39,10 +39,10 @@ export default function AdminDashboard() {
   const [outletStats, setOutletStats] = useState({ active: 0, total: 0 });
 
   const quickActions = [
-    { name: 'Catat Absensi Rider', icon: 'assignment', color: 'bg-[#ffd600]', path: '/admin/absensi' },
-    { name: 'Tambah Rider Baru', icon: 'person_add', color: 'bg-[#22d3ee]', path: '/admin/riders' },
-    { name: 'Tambah Menu Baru', icon: 'add_circle', color: 'bg-[#ff4590]', path: '/admin/outlets' }, // routes to Outlets page menu section
-    { name: 'Tambah Outlet / Gerobak', icon: 'storefront', color: 'bg-[#22c55e]', path: '/admin/outlets' },
+    { name: 'Catat Absensi Rider', icon: 'assignment', color: 'bg-[#ffd600]', path: '/admin/riders?openAbsensi=true' },
+    { name: 'Tambah Rider Baru', icon: 'person_add', color: 'bg-[#22d3ee]', path: '/admin/riders?openAddRider=true' },
+    { name: 'Tambah Menu Baru', icon: 'add_circle', color: 'bg-[#ff4590]', path: '/admin/outlets?openAddMenu=true' }, // routes to Outlets page menu section
+    { name: 'Tambah Outlet / Gerobak', icon: 'storefront', color: 'bg-[#22c55e]', path: '/admin/outlets?openAddOutlet=true' },
   ];
 
   // Load dashboard data
@@ -97,10 +97,22 @@ export default function AdminDashboard() {
 
       // 4. Fetch Active Announcements
       const resAnn = await announcementService.getAllAnnouncements();
-      const activeAnn = resAnn.data.filter(a => a.status === 'Aktif').map(a => ({
-        title: a.judul,
-        desc: a.isi
-      }));
+      const activeAnn = resAnn.data.filter(a => a.status === 'Aktif').map(a => {
+        let fotoUrl = '/promo/PelangganWajibBaca.jpg';
+        if (a.gambar_announcement) {
+          if (a.gambar_announcement.startsWith('http')) {
+            fotoUrl = a.gambar_announcement;
+          } else {
+            const storageBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace('/api', '/storage');
+            fotoUrl = `${storageBaseUrl}/${a.gambar_announcement}`;
+          }
+        }
+        return {
+          title: a.judul,
+          desc: a.isi,
+          image: fotoUrl
+        };
+      });
       setAnnouncements(activeAnn);
 
     } catch (error) {
@@ -117,8 +129,8 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="w-full h-96 flex flex-col items-center justify-center space-y-4">
-        <span className="material-symbols-outlined text-5xl text-[#0A1045] animate-spin">sync</span>
-        <div className="text-[#0A1045] font-black text-sm uppercase tracking-widest animate-pulse">Memuat Live Monitoring...</div>
+        <span className="material-symbols-outlined text-5xl text-[#FACC15] animate-spin">sync</span>
+        <div className="text-white font-black text-sm uppercase tracking-widest animate-pulse">Memuat Live Monitoring...</div>
       </div>
     );
   }
@@ -260,20 +272,16 @@ export default function AdminDashboard() {
         {announcements.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             {announcements.slice(0, 3).map((item, idx) => (
-              <div key={idx} className="border-[3px] border-black rounded-2xl overflow-hidden shadow-[4px_4px_0_0_#000] w-full aspect-[3/4] flex flex-col justify-end bg-black relative">
-                {/* Abstract Neo-brutalist Wave image cover */}
+              <div key={idx} className="border-[3px] border-black rounded-xl w-full bg-[#fdd835] overflow-hidden shadow-[4px_4px_0_0_#000] relative aspect-[3/4]" style={{ contentVisibility: 'auto' }}>
                 <img 
-                  src="/announcement_bg.png" 
-                  alt="Announcement BG"
-                  className="absolute inset-0 w-full h-full object-cover opacity-80"
+                  src={item.image} 
+                  alt={item.title}
+                  className="w-full h-full object-cover block opacity-95"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                {/* Bottom text banner */}
-                <div className="bg-[#0b163f]/95 border-t-2 border-black p-4 relative z-10 w-full">
-                  <p className="text-[10px] text-[#fdd835] font-black uppercase mb-1">Pengumuman</p>
-                  <h4 className="text-white text-xs font-black leading-snug">
-                    {item.title}
-                  </h4>
+                <div className="absolute bottom-4 left-4 right-4 z-10 text-white">
+                  <p className="text-[10px] text-[#FACC15] font-black uppercase tracking-wider mb-1">Pengumuman</p>
+                  <h4 className="text-xs font-black leading-snug drop-shadow-md">{item.title}</h4>
                 </div>
               </div>
             ))}

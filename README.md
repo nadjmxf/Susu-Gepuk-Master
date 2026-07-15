@@ -42,7 +42,7 @@ Platform ini dibangun dengan teknologi modern:
 
 ### Untuk Rider
 - 📱 Dashboard penjualan harian
-- 🗺️ Live location tracking untuk menunjukkan ketersediaan produk
+- 🗺️ Aktifkan akses lokasi tracking untuk menunjukkan ketersediaan produk
 - 📦 Status produk real-time dengan stok dan barang basi
 - 💰 Rekap pendapatan dan penjualan terkini
 - 🔄 Sinkronisasi data otomatis dengan server

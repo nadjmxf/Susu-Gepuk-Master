@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import riderService from '../services/riderService';
 
+const getFotoUrl = (fotoPath) => {
+  if (!fotoPath) return null;
+  if (fotoPath.startsWith('http')) return fotoPath;
+  const storageBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace('/api', '/storage');
+  return `${storageBaseUrl}/${fotoPath}`;
+};
+
 export default function SotrLocations() {
   const [riders, setRiders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +32,12 @@ export default function SotrLocations() {
             status: rider.status_jualan,
             liveLocationStatus: rider.status_live_location,
             location: rider.current_location,
-            mapsUrl: 'https://www.google.com/maps',
+            foto_rider: rider.foto_rider,
+            latitude: rider.latitude,
+            longitude: rider.longitude,
+            mapsUrl: rider.latitude && rider.longitude
+              ? `https://www.google.com/maps?q=${rider.latitude},${rider.longitude}`
+              : null,
           }));
           setRiders(mappedRiders);
         } else {
@@ -118,64 +130,70 @@ export default function SotrLocations() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-16 mt-8">
               {displayedRiders.length > 0 ? displayedRiders.map((rider) => (
-              <div key={rider.id} className={`bg-white rounded-[24px] pt-14 pb-8 px-6 relative flex flex-col items-center border-[4px] border-gray-900`}>
-                {/* Avatar Circle */}
-                <div 
-                  className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-[#d9d9d9] shrink-0 border-[4px] border-gray-900 flex items-center justify-center overflow-hidden shadow-xl"
-                  style={{ borderRadius: '60%' }}
-                >
-                  {/* <span className="material-symbols-outlined text-4xl text-gray-400">person</span> */}
-                </div>
+                <div key={rider.id} className="bg-white rounded-3xl pt-14 pb-8 px-6 relative flex flex-col items-center border-4 border-gray-900 shadow-[6px_6px_0_0_rgba(17,24,39,1)]">
+                  {/* Avatar Circle */}
+                  <div 
+                    className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-[#d9d9d9] shrink-0 border-[4px] border-gray-900 flex items-center justify-center overflow-hidden shadow-xl"
+                    style={{ borderRadius: '60%' }}
+                  >
+                    {rider.foto_rider ? (
+                      <img 
+                        src={getFotoUrl(rider.foto_rider)} 
+                        alt={rider.name} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/susu.png';
+                          e.target.className = 'w-full h-full object-contain p-2 bg-white';
+                        }}
+                      />
+                    ) : (
+                      <img 
+                        src="/susu.png" 
+                        alt="Logo Susu Gepuk" 
+                        className="w-full h-full object-contain p-2 bg-white"
+                      />
+                    )}
+                  </div>
 
-                <div className="w-full relative flex  items-center mb-4 h-6">
-                  <h4 className="font-bold text-gray-900 text-lg uppercase tracking-wide">{rider.name || 'NAMA'}</h4>
-                  {rider.status === 'Tersedia' ? (
-                    <div className="absolute right-0 flex items-center gap-1 text-[#0ea5e9] text-xs font-bold">
-                      Tersedia <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                  {/* Rider Name (Centered) */}
+                  <h4 className="font-bold text-gray-900 mb-6 font-headline-md text-center">{rider.name || 'NAMA'}</h4>
+
+                  <div className="w-full h-1 bg-gray-900 mb-6"></div>
+
+                  {/* Location Detail block */}
+                  <div className="flex items-start gap-3 w-full mb-8">
+                    <div className="w-8 h-8 bg-[#0f2c7a] rounded-full flex items-center justify-center shrink-0 mt-1">
+                      <span className="material-symbols-outlined text-white text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
                     </div>
+                    <div className="text-left">
+                      <p className="text-[10px] text-gray-500 mb-1 font-label-bold uppercase tracking-wider">LOKASI SAAT INI</p>
+                      <p className="font-bold text-gray-900 text-sm">
+                        {rider.liveLocationStatus === 'Aktif' ? rider.location : 'LOKASI TIDAK DIBAGIKAN'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {rider.status === 'Tersedia' && rider.liveLocationStatus === 'Aktif' ? (
+                    <a
+                      href={rider.mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-[#b91c1c] text-white font-bold px-6 py-3 rounded-full border-[3px] border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex items-center gap-2 hover:bg-red-800 hover:translate-y-1 hover:shadow-[2px_2px_0_0_rgba(17,24,39,1)] transition-all text-[11px] uppercase tracking-wide"
+                    >
+                      <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
+                      LIHAT LIVE LOCATION
+                    </a>
                   ) : (
-                    <div className="absolute right-0 flex items-center gap-1 text-red-600 text-xs font-bold">
-                      Habis <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>cancel</span>
-                    </div>
+                    <button
+                      disabled
+                      className="bg-gray-400 text-white font-bold px-6 py-3 rounded-full border-[3px] border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex items-center gap-2 text-[11px] uppercase tracking-wide cursor-not-allowed opacity-60"
+                    >
+                      <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                      LOKASI TIDAK DIBAGIKAN
+                    </button>
                   )}
                 </div>
-
-                <div className="w-full h-1 bg-gray-900 mb-6"></div>
-
-                <div className="flex items-center gap-4 w-full mb-8">
-                  <div className="w-10 h-10 bg-[#0052cc] rounded-full flex items-center justify-center shrink-0 border-[3px] border-gray-900 shadow-[3px_3px_0_0_rgba(17,24,39,1)]">
-                    <span className="material-symbols-outlined text-white text-[18px]">location_on</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] text-gray-500 mb-0.5 font-bold uppercase tracking-wider">LOKASI SAAT INI</p>
-                    <p className="font-bold text-gray-900 text-[15px]">
-                      {rider.liveLocationStatus === 'Aktif' ? rider.location : 'LOKASI TIDAK DIBAGIKAN'}
-                    </p>
-                  </div>
-                </div>
-
-                {rider.status === 'Tersedia' && rider.liveLocationStatus === 'Aktif' ? (
-                  <a
-                    href={rider.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ borderRadius: '999px' }}
-                    className="text-white font-bold px-8 py-3.5 border-[3px] border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex items-center justify-center gap-3 w-[90%] transition-all text-sm uppercase tracking-wide bg-[#b91c1c] hover:bg-red-800 hover:translate-y-1 hover:shadow-[2px_2px_0_0_rgba(17,24,39,1)]"
-                  >
-                    <div className="w-3.5 h-3.5 rounded-full bg-white"></div>
-                    LIHAT LOKASI RIDER
-                  </a>
-                ) : (
-                  <button
-                    disabled
-                    style={{ borderRadius: '999px' }}
-                    className="text-white font-bold px-8 py-3.5 border-[3px] border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex items-center justify-center gap-3 w-[90%] transition-all text-sm uppercase tracking-wide bg-gray-500 cursor-not-allowed opacity-80"
-                  >
-                    <div className="w-3.5 h-3.5 rounded-full bg-gray-300"></div>
-                    LIHAT LOKASI RIDER
-                  </button>
-                )}
-              </div>
             )) : (
               <div className="col-span-full text-center py-8 text-white font-bold">
                 Tidak ada rider di area ini.

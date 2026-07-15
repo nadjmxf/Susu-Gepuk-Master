@@ -5,7 +5,7 @@ export default function AboutUs() {
     <section className="py-24 px-8 bg-blue-50" id="about-us">
       <div className="max-w-7xl mx-auto flex flex-col items-center">
         <div className="flex flex-col items-center mb-16 text-center">
-          <h2 className="text-4xl font-bold text-[#0f2c7a] mb-4 font-display-lg uppercase tracking-wider">KENAPA KAMI?</h2>
+          <h2 className="text-4xl md:text-4xl text-[#0f2c7a] mb-2 font-rocko tracking-tight">KENAPA KAMI?</h2>
           <div className="h-1.5 w-16 bg-[#eab308] rounded-full mb-6"></div>
           <p className="text-gray-500 max-w-2xl font-body-md text-lg">
             Kami berkomitmen memberikan kualitas susu sapi premium terbaik setiap harinya.
@@ -19,7 +19,7 @@ export default function AboutUs() {
               <span className="text-3xl">🐄</span>
             </div>
             <h3 className="font-bold text-[#0f2c7a] text-xl mb-3 font-headline-md uppercase">100% Asli</h3>
-            <p className="text-gray-500 font-body-md">Diperah langsung setiap pagi untuk menjamin kualitas dan nutrisi terbaik.</p>
+            <p className="text-gray-500 font-body-md">Susu pasteurisasi yang diproses secara higienis untuk memberikan cita rasa terbaik di setiap sajian.</p>
           </div>
           
           {/* Card 2 */}
@@ -28,7 +28,7 @@ export default function AboutUs() {
               <span className="text-3xl">✅</span>
             </div>
             <h3 className="font-bold text-[#0f2c7a] text-xl mb-3 font-headline-md uppercase">Halal</h3>
-            <p className="text-gray-500 font-body-md">Proses higienis dan terjamin halal untuk ketenangan hati Anda saat mengonsumsi.</p>
+            <p className="text-gray-500 font-body-md">Terjamin halal untuk ketenangan hati Anda saat mengonsumsi.</p>
           </div>
           
           {/* Card 3 */}
@@ -36,8 +36,8 @@ export default function AboutUs() {
             <div className="w-16 h-16 bg-[#0f2c7a] text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg">
               <span className="text-3xl">🛵</span>
             </div>
-            <h3 className="font-bold text-[#0f2c7a] text-xl mb-3 font-headline-md uppercase">Ngebut</h3>
-            <p className="text-gray-500 font-body-md">Armada kami siap mengantar kesegaran langsung ke lokasi Anda setiap hari.</p>
+            <h3 className="font-bold text-[#0f2c7a] text-xl mb-3 font-headline-md uppercase">Mudah Dijangkau</h3>
+            <p className="text-gray-500 font-body-md">Rider kami berkeliling di titik-titik strategis sehingga pelanggan lebih mudah mendapatkan produk.</p>
           </div>
         </div>
       </div>

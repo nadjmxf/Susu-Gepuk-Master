@@ -1,11 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 
 export default function Header() {
-  const [activeItem, setActiveItem] = useState('Home');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [activeItem, setActiveItem] = useState(() => {
+    if (location.pathname === '/outlets' || location.pathname === '/sotr') {
+      return 'Lokasi';
+    }
+    return 'Home';
+  });
   const [isScrolled, setIsScrolled] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navRefs = useRef({});
+
+  useEffect(() => {
+    if (location.pathname === '/outlets' || location.pathname === '/sotr') {
+      setActiveItem('Lokasi');
+    } else if (location.pathname === '/' && !location.hash) {
+      setActiveItem('Home');
+    }
+  }, [location.pathname, location.hash]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,6 +49,25 @@ export default function Header() {
     return () => window.removeEventListener('resize', updateIndicator);
   }, [activeItem]);
 
+  // Scroll to hash element if present on path '/'
+  useEffect(() => {
+    if (location.pathname === '/' && location.hash) {
+      const id = location.hash.replace('#', '');
+      const targetElement = document.getElementById(id);
+      if (targetElement) {
+        setTimeout(() => {
+          const headerOffset = 100;
+          const elementPosition = targetElement.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.scrollY - headerOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }, 150);
+      }
+    }
+  }, [location]);
+
   const menuItems = [
     { label: 'Home', id: 'home' },
     { label: 'Menu', id: 'menu' },
@@ -43,9 +79,34 @@ export default function Header() {
     { label: 'About Us', id: 'about-us' }
   ];
 
+  const handleScrollToSection = (e, id, label) => {
+    setActiveItem(label);
+    setIsMobileMenuOpen(false);
+
+    if (location.pathname !== '/') {
+      navigate(`/#${id}`);
+      return;
+    }
+
+    e.preventDefault();
+    const targetElement = document.getElementById(id);
+    if (targetElement) {
+      const headerOffset = 100;
+      const elementPosition = targetElement.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - headerOffset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <header className={`fixed top-0 left-0 w-full z-50 px-8 md:px-11 flex justify-between items-center transition-all duration-300 bg-white opacity-0 animate-fade-in ${isScrolled ? 'py-3 shadow-md border-b border-gray-100' : 'py-5'}`} style={{ animationFillMode: 'forwards' }}>
-      <div className="flex flex-col leading-none font-bold text-[#0f2c7a] text-xl font-display-xl uppercase tracking-tighter hover:scale-105 transition-transform duration-300 cursor-pointer">
+      <div 
+        onClick={() => navigate('/')}
+        className="flex flex-col leading-none font-bold text-[#0f2c7a] text-xl font-display-xl uppercase tracking-tighter hover:scale-105 transition-transform duration-300 cursor-pointer"
+      >
         <img src="/susu.png" alt="Susu Gepuk" className="w-48" />
       </div>
       
@@ -60,20 +121,7 @@ export default function Header() {
           <div key={item.label} className="group relative" ref={(el) => (navRefs.current[item.label] = el)}>
             <a
               href={`#${item.id}`}
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveItem(item.label);
-                const targetElement = document.getElementById(item.id);
-                if (targetElement) {
-                  const headerOffset = 100;
-                  const elementPosition = targetElement.getBoundingClientRect().top;
-                  const offsetPosition = elementPosition + window.scrollY - headerOffset;
-                  window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                  });
-                }
-              }}
+              onClick={(e) => handleScrollToSection(e, item.id, item.label)}
               className={`relative z-10 px-4 py-2 rounded-full font-bold text-sm transition-colors duration-300 font-label-bold flex items-center justify-center gap-1.5 ${
                 activeItem === item.label 
                   ? 'text-[#0f2c7a]' 
@@ -96,17 +144,7 @@ export default function Header() {
                     <a
                       key={sub.label}
                       href={`#${sub.id}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setActiveItem(item.label);
-                        const targetElement = document.getElementById(sub.id);
-                        if (targetElement) {
-                          const headerOffset = 100;
-                          const elementPosition = targetElement.getBoundingClientRect().top;
-                          const offsetPosition = elementPosition + window.scrollY - headerOffset;
-                          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-                        }
-                      }}
+                      onClick={(e) => handleScrollToSection(e, sub.id, item.label)}
                       className="block px-5 py-3 text-sm font-bold text-[#0f2c7a] hover:bg-blue-50 transition-all border-b border-gray-50 last:border-0 hover:pl-6"
                     >
                       {sub.label}
@@ -120,9 +158,48 @@ export default function Header() {
       </nav>
 
       {/* Mobile Menu Button */}
-      <button className="md:hidden text-[#0f2c7a] p-2 hover:bg-blue-50 rounded-full transition-colors active:scale-95">
-        <span className="material-symbols-outlined text-3xl">menu</span>
+      <button 
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="md:hidden text-[#0f2c7a] p-2 hover:bg-blue-50 rounded-full transition-colors active:scale-95 z-50"
+        aria-label="Toggle Navigation"
+      >
+        <span className="material-symbols-outlined text-3xl">
+          {isMobileMenuOpen ? 'close' : 'menu'}
+        </span>
       </button>
+
+      {/* Mobile Menu Panel */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed top-[72px] left-0 w-full bg-white border-b-4 border-gray-900 shadow-2xl z-[9999] p-6 flex flex-col gap-4 animate-fade-in">
+          {menuItems.map((item) => (
+            <div key={item.label} className="flex flex-col gap-2">
+              <a
+                href={`#${item.id}`}
+                onClick={(e) => handleScrollToSection(e, item.id, item.label)}
+                className={`font-bold text-lg text-[#0f2c7a] py-2 border-b border-gray-100 flex items-center justify-between ${
+                  activeItem === item.label ? 'text-yellow-500 font-extrabold' : ''
+                }`}
+              >
+                {item.label}
+              </a>
+              {item.isDropdown && (
+                <div className="pl-4 flex flex-col gap-2 border-l-2 border-gray-200 mt-1">
+                  {item.subItems.map(sub => (
+                    <a
+                      key={sub.label}
+                      href={`#${sub.id}`}
+                      onClick={(e) => handleScrollToSection(e, sub.id, item.label)}
+                      className="text-sm font-bold text-gray-600 py-1.5"
+                    >
+                      {sub.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
     </header>
   );

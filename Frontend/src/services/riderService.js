@@ -117,6 +117,20 @@ const riderService = {
       };
     }
   },
+
+  // Store rider attendance/absensi
+  storeAbsensi: async (riderId, payload) => {
+    try {
+      const response = await api.post(`/rider/${riderId}/activity`, payload);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || {
+        success: false,
+        message: 'Gagal menyimpan data kehadiran',
+      };
+    }
+  },
+
   // Get SOTR locations
   getSotrLocations: async () => {
     try {
