@@ -34,7 +34,7 @@ export default function Login() {
     <AuthLayout
       extraContent={
         <img
-          src="/Susuputih (1).png"
+          src="/Susuputih (1).webp"
           alt="Susu Gepuk"
           className="w-[300px] h-auto mx-7 -mt-59 drop-shadow-xl"
         />

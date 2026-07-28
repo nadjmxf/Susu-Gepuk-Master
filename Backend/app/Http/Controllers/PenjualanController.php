@@ -8,9 +8,24 @@ use App\Models\Menu;
 use App\Models\Rider;
 use App\Models\Aktivitas;
 use Carbon\Carbon;
+use App\Helpers\ImageHelper;
 
 class PenjualanController extends Controller
 {
+    /**
+     * IDOR protection: pastikan rider hanya akses data sendiri
+     */
+    private function checkRiderOwnership(Request $request, $riderId)
+    {
+        $user = $request->user();
+        if ($user instanceof \App\Models\Rider && $user->id_rider !== (int) $riderId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses ke data rider ini.',
+            ], 403);
+        }
+        return null; // OK, authorized
+    }
     public function index()
     {
         $penjualan = Penjualan::all();
@@ -112,8 +127,11 @@ class PenjualanController extends Controller
     }
 
     // Get latest penjualan for a rider
-    public function getLatestByRider($riderId)
+    public function getLatestByRider(Request $request, $riderId)
     {
+        $denied = $this->checkRiderOwnership($request, $riderId);
+        if ($denied) return $denied;
+
         $penjualan = Penjualan::where('id_rider', $riderId)
             ->orderBy('tanggal_penjualan', 'desc')
             ->first();
@@ -132,8 +150,11 @@ class PenjualanController extends Controller
     }
 
     // Get today's penjualan for a rider
-    public function getTodayByRider($riderId)
+    public function getTodayByRider(Request $request, $riderId)
     {
+        $denied = $this->checkRiderOwnership($request, $riderId);
+        if ($denied) return $denied;
+
         $today = Carbon::now()->toDateString();
         
         $penjualan = Penjualan::where('id_rider', $riderId)
@@ -154,8 +175,11 @@ class PenjualanController extends Controller
     }
 
     // Get menu items with stock info for rider
-    public function getMenuForRider($riderId)
+    public function getMenuForRider(Request $request, $riderId)
     {
+        $denied = $this->checkRiderOwnership($request, $riderId);
+        if ($denied) return $denied;
+
         $menus = Menu::where('status_menu', 'Aktif')
             ->select('id_menu', 'nama_menu', 'harga', 'stok_bawa')
             ->get()
@@ -175,8 +199,11 @@ class PenjualanController extends Controller
     }
 
     // Get rider info and today's data
-    public function getRiderDataForRecap($riderId)
+    public function getRiderDataForRecap(Request $request, $riderId)
     {
+        $denied = $this->checkRiderOwnership($request, $riderId);
+        if ($denied) return $denied;
+
         try {
             $rider = Rider::find($riderId);
             
@@ -250,6 +277,15 @@ class PenjualanController extends Controller
                 'bukti_transfer' => 'nullable|file|mimes:jpg,jpeg,png,gif|max:2048',
             ]);
 
+            // IDOR protection: rider hanya bisa submit data sendiri
+            $user = $request->user();
+            if ($user instanceof \App\Models\Rider && $user->id_rider !== (int) $validated['id_rider']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda hanya bisa submit data penjualan sendiri.',
+                ], 403);
+            }
+
             // Check if rider has already submitted today
             $today = Carbon::now()->toDateString();
             $existing = Penjualan::where('id_rider', $validated['id_rider'])
@@ -275,9 +311,7 @@ class PenjualanController extends Controller
 
             $buktiPath = null;
             if ($request->hasFile('bukti_transfer')) {
-                $file = $request->file('bukti_transfer');
-                $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '', $file->getClientOriginalName());
-                $buktiPath = $file->storeAs('transfers', $fileName, 'public');
+                $buktiPath = ImageHelper::convertToWebp($request->file('bukti_transfer'), 'transfers');
                 $validated['bukti_transfer'] = $buktiPath;
             }
 
@@ -335,6 +369,9 @@ class PenjualanController extends Controller
     // Get penjualan history for a rider (paginated)
     public function getHistoryByRider(Request $request, $riderId)
     {
+        $denied = $this->checkRiderOwnership($request, $riderId);
+        if ($denied) return $denied;
+
         try {
             $monthName = $request->query('month');
             $year = $request->query('year');

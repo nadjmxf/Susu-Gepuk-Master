@@ -63,40 +63,22 @@ export default function RiderList({
           Memuat data rider...
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-6 pt-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-8 pt-12">
           {filteredRiders.map((rider) => {
-            const statusStyle = getStatusDetails(rider.status_kehadiran);
+            const isLive = rider.status_live_location === 'Aktif';
             const isAktif = rider.status_akun === 'Aktif';
+            const locationText = isLive 
+              ? (rider.location?.alamat || (rider.area ? `Area ${rider.area}` : 'Lokasi tidak tersedia')) 
+              : 'Lokasi tidak tersedia';
+
             return (
               <div
                 key={rider.id_rider}
-                className="bg-white border-[3px] border-black rounded-2xl p-6 shadow-[6px_6px_0_0_#000] relative flex flex-col pt-12"
+                className="bg-white rounded-3xl pt-14 pb-8 px-6 relative flex flex-col items-center border-[4px] border-black shadow-[6px_6px_0_0_#000]"
               >
-                {/* Overlapping Avatar Image */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-[3px] border-black bg-white overflow-hidden shadow-[2px_2px_0_0_#000] flex items-center justify-center">
-                  {rider.foto_rider ? (
-                    <img
-                      src={getFotoUrl(rider.foto_rider)}
-                      alt={rider.nama_rider}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = '/susu.png';
-                        e.target.className = 'w-full h-full object-contain p-2 bg-white';
-                      }}
-                    />
-                  ) : (
-                    <img
-                      src="/susu.png"
-                      alt="Logo Susu Gepuk"
-                      className="w-full h-full object-contain p-2 bg-white"
-                    />
-                  )}
-                </div>
-
                 {/* Status Akun Badge */}
-                <div className="absolute top-4 right-4">
-                  <div className={`border-2 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1 ${isAktif
+                <div className="absolute top-4 right-4 z-20">
+                  <div className={`border-2 text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full flex items-center gap-1 ${isAktif
                       ? 'border-[#22C55E] bg-green-50 text-[#22C55E]'
                       : 'border-gray-400 bg-gray-50 text-gray-500'
                     }`}>
@@ -105,39 +87,71 @@ export default function RiderList({
                   </div>
                 </div>
 
-                {/* Card Content */}
-                <div className="text-center space-y-1">
-                  <h3 className="text-xl font-black text-black tracking-tight">{rider.nama_rider}</h3>
-                  <p className="text-sm font-bold text-gray-500">{rider.no_hp}</p>
+                {/* Overlapping Avatar Image (Circle Shape) */}
+                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-[#d9d9d9] shrink-0 border-[4px] border-black rounded-full flex items-center justify-center overflow-hidden shadow-xl z-10">
+                  {rider.foto_rider ? (
+                    <img
+                      src={getFotoUrl(rider.foto_rider)}
+                      alt={rider.nama_rider}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/susu.webp';
+                        e.target.className = 'w-full h-full object-contain p-2 bg-white';
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src="/susu.webp"
+                      alt="Logo Susu Gepuk"
+                      className="w-full h-full object-contain p-2 bg-white"
+                    />
+                  )}
                 </div>
 
-                <hr className="border-t-2 border-gray-100 my-4" />
+                {/* Rider Name (Centered) */}
+                <h4 className="font-black text-black text-xl mb-6 text-center tracking-tight">
+                  {rider.nama_rider}
+                </h4>
 
-                {/* Attendance Status */}
-                <div className="flex justify-center items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  <span>Status Kehadiran:</span>
-                  <div className="flex items-center gap-1 ml-1">
-                    <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
-                    <span className={`font-black ${statusStyle.color}`}>{rider.status_kehadiran}</span>
+                {/* Horizontal Divider Line */}
+                <div className="w-full h-1 bg-black mb-6"></div>
+
+                {/* Location Detail Row */}
+                <div className="flex items-start gap-3 w-full mb-8">
+                  <div className="w-8 h-8 bg-[#0f2c7a] rounded-full flex items-center justify-center shrink-0 mt-1">
+                    <span className="material-symbols-outlined text-white text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      location_on
+                    </span>
+                  </div>
+                  <div className="text-left flex-1 min-w-0">
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-wider mb-0.5">
+                      LOKASI SAAT INI
+                    </p>
+                    <p className="font-black text-black text-sm leading-snug break-words">
+                      {locationText}
+                    </p>
                   </div>
                 </div>
 
-                {/* Info Box */}
-                <div className="bg-gray-50 border-2 border-gray-100 rounded-xl p-3 flex flex-col gap-1 mt-5 text-left">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{rider.code}</span>
-                  <div className="flex items-center text-xs font-bold text-gray-700 mt-0.5">
-                    <span className="material-symbols-outlined text-sm mr-1 text-red-500">location_on</span>
-                    <span className="truncate">{rider.area}</span>
-                  </div>
-                </div>
-
-                {/* Button CTA */}
-                <button
-                  onClick={() => handleViewDetail(rider)}
-                  className="w-full bg-[#DC2626] hover:bg-red-700 text-white font-black py-2.5 px-4 rounded-xl border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all text-xs tracking-wider uppercase mt-5 cursor-pointer"
-                >
-                  Lihat Profil Selengkapnya
-                </button>
+                {/* Action Pill Button */}
+                {isLive ? (
+                  <button
+                    onClick={() => handleViewDetail(rider)}
+                    className="w-full bg-[#b91c1c] hover:bg-red-800 text-white font-black px-6 py-3 rounded-2xl border-[3px] border-black shadow-[4px_4px_0_0_#000] flex items-center justify-center gap-2 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all text-[11px] uppercase tracking-wide cursor-pointer"
+                  >
+                    <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
+                    LIHAT LIVE LOCATION
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleViewDetail(rider)}
+                    className="w-full bg-[#64748b] hover:bg-slate-600 text-white font-black px-6 py-3 rounded-2xl border-[3px] border-black shadow-[4px_4px_0_0_#000] flex items-center justify-center gap-2 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all text-[11px] uppercase tracking-wide cursor-pointer"
+                  >
+                    <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                    LOKASI TIDAK TERSEDIA
+                  </button>
+                )}
               </div>
             );
           })}

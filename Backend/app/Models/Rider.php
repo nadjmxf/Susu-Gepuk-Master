@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
-class Rider extends Model
+class Rider extends Authenticatable
 {
+    use HasApiTokens;
+
     protected $primaryKey = 'id_rider';
     protected $keyType = 'int';
     public $incrementing = true;
@@ -24,6 +27,10 @@ class Rider extends Model
         'status_live_location',
     ];
 
+    protected $hidden = [
+        'password',
+    ];
+
     public function aktivitas()
     {
         return $this->hasMany(Aktivitas::class, 'id_rider', 'id_rider');
@@ -34,3 +41,4 @@ class Rider extends Model
         return $this->hasMany(Penjualan::class, 'id_rider', 'id_rider');
     }
 }
+

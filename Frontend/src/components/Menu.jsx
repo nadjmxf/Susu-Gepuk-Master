@@ -25,9 +25,12 @@ export default function Menu() {
   }, []);
 
   const getFotoUrl = (fotoPath) => {
-    if (!fotoPath) return '/susu.png';
+    if (!fotoPath) return '/susu.webp';
     if (fotoPath.startsWith('http')) return fotoPath;
-    if (fotoPath.includes('-Photoroom.png')) return `/drive-download-20260512T105721Z-3-001/${fotoPath}`;
+    if (fotoPath.includes('-Photoroom')) {
+      const webpName = fotoPath.replace(/\.(png|jpe?g)$/i, '.webp');
+      return `/drive-download-20260512T105721Z-3-001/${webpName}`;
+    }
     const storageBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace('/api', '/storage');
     return `${storageBaseUrl}/${fotoPath}`;
   };
@@ -103,7 +106,7 @@ export default function Menu() {
 
             {/* Product Image */}
             <div className="w-full h-56 mt-8 mb-4 flex items-center justify-center">
-              <img src={product.img} alt={product.name} className="w-full h-full object-contain drop-shadow-xl" />
+              <img src={product.img} alt={product.name} loading="lazy" className="w-full h-full object-contain drop-shadow-xl" />
             </div>
 
             {/* Stars */}

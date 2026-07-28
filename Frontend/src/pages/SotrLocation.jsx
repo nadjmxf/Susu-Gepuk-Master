@@ -24,8 +24,11 @@ export default function SotrLocations() {
         const response = await riderService.getAllRiders();
         
         if (response.success && response.data) {
+          // Filter out inactive riders
+          const activeRiders = response.data.filter(rider => rider.status_akun === 'Aktif');
+
           // Map API response to component format
-          const mappedRiders = response.data.map((rider) => ({
+          const mappedRiders = activeRiders.map((rider) => ({
             id: rider.id_rider,
             area: rider.area,
             name: rider.nama_rider,
@@ -143,13 +146,13 @@ export default function SotrLocations() {
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = '/susu.png';
+                          e.target.src = '/susu.webp';
                           e.target.className = 'w-full h-full object-contain p-2 bg-white';
                         }}
                       />
                     ) : (
                       <img 
-                        src="/susu.png" 
+                        src="/susu.webp" 
                         alt="Logo Susu Gepuk" 
                         className="w-full h-full object-contain p-2 bg-white"
                       />
@@ -169,14 +172,16 @@ export default function SotrLocations() {
                     <div className="text-left">
                       <p className="text-[10px] text-gray-500 mb-1 font-label-bold uppercase tracking-wider">LOKASI SAAT INI</p>
                       <p className="font-bold text-gray-900 text-sm">
-                        {rider.liveLocationStatus === 'Aktif' ? rider.location : 'LOKASI TIDAK DIBAGIKAN'}
+                        {rider.liveLocationStatus === 'Aktif' ? (rider.location || 'Lokasi tidak tersedia') : 'LOKASI TIDAK DIBAGIKAN'}
                       </p>
                     </div>
                   </div>
 
-                  {rider.status === 'Tersedia' && rider.liveLocationStatus === 'Aktif' ? (
+                  {rider.liveLocationStatus === 'Aktif' && (rider.mapsUrl || (rider.latitude && rider.longitude) || rider.location) ? (
                     <a
-                      href={rider.mapsUrl}
+                      href={rider.mapsUrl || (rider.latitude && rider.longitude 
+                        ? `https://www.google.com/maps?q=${rider.latitude},${rider.longitude}` 
+                        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rider.location)}`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bg-[#b91c1c] text-white font-bold px-6 py-3 rounded-full border-[3px] border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex items-center gap-2 hover:bg-red-800 hover:translate-y-1 hover:shadow-[2px_2px_0_0_rgba(17,24,39,1)] transition-all text-[11px] uppercase tracking-wide"
@@ -208,7 +213,7 @@ export default function SotrLocations() {
           {/* Responsive Illustration */}
           <div className="w-full relative overflow-hidden">
             <img
-              src="/footersapi.png"
+              src="/footersapi.webp"
               alt="Susu Gepuk Farm"
               className="w-full h-auto object-cover block"
             />
@@ -218,7 +223,7 @@ export default function SotrLocations() {
           <div className="bg-[#0f2c7a] pt-12 pb-8 px-8 relative">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
               <div className="bg-white border-4 border-gray-900 rounded-[40px] px-11 py-2 shadow-[4px_4px_0_0_rgba(17,24,39,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_rgba(17,24,39,1)] transition-all cursor-pointer flex items-center justify-center">
-                <img src="/susu.png" alt="Susu Gepuk" className="h-14 md:h-16" />
+                <img src="/susu.webp" alt="Susu Gepuk" className="h-14 md:h-16" />
               </div>
             </div>
 

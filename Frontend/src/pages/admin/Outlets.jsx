@@ -98,9 +98,10 @@ export default function Outlets() {
     if (item.gambar_menu) {
       if (item.gambar_menu.startsWith('http')) {
         fotoUrl = item.gambar_menu;
-      } else if (item.gambar_menu.includes('-Photoroom.png')) {
+      } else if (item.gambar_menu.includes('-Photoroom')) {
         // Default seeder images are stored in frontend public assets folder
-        fotoUrl = `/drive-download-20260512T105721Z-3-001/${item.gambar_menu}`;
+        const webpName = item.gambar_menu.replace(/\.(png|jpe?g)$/i, '.webp');
+        fotoUrl = `/drive-download-20260512T105721Z-3-001/${webpName}`;
       } else {
         // User uploaded new menu images from admin panel
         fotoUrl = `http://localhost:8000/storage/${item.gambar_menu}`;
@@ -155,12 +156,19 @@ export default function Outlets() {
       });
       setFixedOutlets(fixed);
 
+const getFotoUrl = (fotoPath) => {
+  if (!fotoPath) return null;
+  if (fotoPath.startsWith('http')) return fotoPath;
+  const storageBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace('/api', '/storage');
+  return `${storageBaseUrl}/${fotoPath}`;
+};
+
       // SOTR Units
       const sotr = outlets.filter(o => o.jenis_outlet === 'Outlet Bergerak').map(o => ({
         id: o.id_outlet,
         unit: o.nama_outlet,
         rider: o.rider ? o.rider.nama_rider : 'Belum Ditugaskan',
-        foto_rider: o.rider && o.rider.foto_rider ? `http://localhost:8000/storage/${o.rider.foto_rider}` : '',
+        foto_rider: o.rider && o.rider.foto_rider ? getFotoUrl(o.rider.foto_rider) : '',
         status_sotr: o.status_operasional === 'Buka' ? 'Aktif' : 'Nonaktif',
         status_operasional: o.status_operasional === 'Buka' ? 'BUKA' : 'TUTUP',
         area: o.area || '',

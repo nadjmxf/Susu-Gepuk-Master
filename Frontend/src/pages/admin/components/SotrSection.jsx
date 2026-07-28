@@ -131,17 +131,6 @@ export default function SotrSection({ sotrUnits, ridersList, onRefresh, handleTo
           ---------------------------------------------------- */}
       <div className="space-y-4">
 
-        {/* Header Row with Add Button */}
-        <div className="flex justify-end">
-          <button
-            onClick={openAddSotr}
-            className="bg-[#FACC15] hover:bg-yellow-400 text-black border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all rounded-xl px-5 py-2.5 font-black text-xs uppercase flex items-center gap-2 cursor-pointer shrink-0"
-          >
-            <span className="material-symbols-outlined font-black text-sm">add</span>
-            TAMBAH OUTLET SOTR
-          </button>
-        </div>
-
         {/* Section Title Pill Line */}
         <div className="flex items-center gap-4 w-full">
           <div className="bg-[#3B82F6] border-[3px] border-black text-white font-black text-xs uppercase px-5 py-2.5 rounded-full inline-flex items-center gap-2 cursor-pointer shadow-[3px_3px_0_0_#000] tracking-wider whitespace-nowrap">
@@ -190,7 +179,16 @@ export default function SotrSection({ sotrUnits, ridersList, onRefresh, handleTo
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full border border-black overflow-hidden shadow-[1px_1px_0_0_#000] bg-gray-200 shrink-0">
                               {unit.foto_rider ? (
-                                <img src={unit.foto_rider} alt={unit.rider} className="w-full h-full object-cover" />
+                                <img
+                                  src={unit.foto_rider}
+                                  alt={unit.rider}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = '/susu.webp';
+                                    e.target.className = 'w-full h-full object-contain p-0.5 bg-white';
+                                  }}
+                                />
                               ) : (
                                 <span className="material-symbols-outlined text-xs flex items-center justify-center h-full">person</span>
                               )}
@@ -270,7 +268,16 @@ export default function SotrSection({ sotrUnits, ridersList, onRefresh, handleTo
                       <div className="flex items-center gap-2 mt-2">
                         <div className="w-6 h-6 rounded-full border-[2px] border-black overflow-hidden shadow-[1px_1px_0_0_#000] bg-gray-200 shrink-0">
                           {unit.foto_rider ? (
-                            <img src={unit.foto_rider} alt={unit.rider} className="w-full h-full object-cover" />
+                            <img
+                              src={unit.foto_rider}
+                              alt={unit.rider}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = '/susu.webp';
+                                e.target.className = 'w-full h-full object-contain p-0.5 bg-white';
+                              }}
+                            />
                           ) : (
                             <span className="material-symbols-outlined text-xs flex items-center justify-center h-full">person</span>
                           )}
@@ -359,9 +366,18 @@ export default function SotrSection({ sotrUnits, ridersList, onRefresh, handleTo
               </button>
             </div>
           </div>
-
         </div>
 
+        {/* Footer Row with Add Button */}
+        <div className="flex justify-end pt-2">
+          <button
+            onClick={openAddSotr}
+            className="bg-[#FACC15] hover:bg-yellow-400 text-black border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all rounded-xl px-5 py-2.5 font-black text-xs uppercase flex items-center gap-2 cursor-pointer shrink-0"
+          >
+            <span className="material-symbols-outlined font-black text-sm">add</span>
+            TAMBAH OUTLET SOTR
+          </button>
+        </div>
       </div>
 
       {/* Modal SOTR */}

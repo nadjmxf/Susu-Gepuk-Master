@@ -10,7 +10,8 @@ const authService = {
       });
       
       if (response.data.success) {
-        // Simpan data user ke localStorage
+        // Simpan token dan data user ke localStorage
+        localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.data));
         localStorage.setItem('role', 'admin');
       }
@@ -33,6 +34,8 @@ const authService = {
       });
       
       if (response.data.success) {
+        // Simpan token dan data user ke localStorage
+        localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.data));
         localStorage.setItem('role', 'rider');
       }
@@ -46,11 +49,18 @@ const authService = {
     }
   },
 
-  // Logout
-  logout: () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('role');
-    localStorage.removeItem('token');
+  // Logout — invalidate token on server
+  logout: async () => {
+    try {
+      await api.post('/logout');
+    } catch (error) {
+      // Even if server logout fails, clear local data
+      console.warn('Server logout failed:', error);
+    } finally {
+      localStorage.removeItem('user');
+      localStorage.removeItem('role');
+      localStorage.removeItem('token');
+    }
   },
 
   // Get current user
@@ -64,9 +74,19 @@ const authService = {
     return localStorage.getItem('role');
   },
 
-  // Check if user is authenticated
+  // Check if user is authenticated (has token)
   isAuthenticated: () => {
-    return !!localStorage.getItem('user');
+    return !!localStorage.getItem('token') && !!localStorage.getItem('user');
+  },
+
+  // Verify token is still valid by calling /me endpoint
+  verifyToken: async () => {
+    try {
+      const response = await api.get('/me');
+      return response.data.success;
+    } catch (error) {
+      return false;
+    }
   },
 };
 

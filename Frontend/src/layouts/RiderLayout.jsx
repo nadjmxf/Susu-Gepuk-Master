@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
+import riderService from '../services/riderService';
+
+const getFotoUrl = (fotoPath) => {
+  if (!fotoPath) return null;
+  if (fotoPath.startsWith('http')) return fotoPath;
+  const storageBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace('/api', '/storage');
+  return `${storageBaseUrl}/${fotoPath}`;
+};
 
 export default function RiderLayout() {
   const location = useLocation();
@@ -8,16 +16,27 @@ export default function RiderLayout() {
   const currentPath = location.pathname;
   const [user, setUser] = useState(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
     if (currentUser) {
       setUser(currentUser);
+      if (currentUser.id_rider) {
+        riderService.getRiderById(currentUser.id_rider)
+          .then((res) => {
+            if (res.success && res.data) {
+              setUser((prev) => ({ ...prev, ...res.data }));
+              localStorage.setItem('user', JSON.stringify({ ...currentUser, ...res.data }));
+            }
+          })
+          .catch((err) => console.log('Gagal memperbarui data rider:', err));
+      }
     }
   }, []);
 
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    await authService.logout();
     navigate('/rider/login');
   };
 
@@ -31,8 +50,17 @@ export default function RiderLayout() {
     <>
       {/* Profile Section */}
       <div className="p-6 border-b-2 border-gray-200 flex flex-col items-center">
-        <div className="w-20 h-20 bg-[#fdd835] rounded-2xl border-4 border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex items-center justify-center mb-4">
-          <span className="material-symbols-outlined text-4xl">person</span>
+        <div className="w-20 h-20 bg-[#fdd835] rounded-2xl border-4 border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex items-center justify-center mb-4 overflow-hidden relative">
+          {user?.foto_rider && !imageError ? (
+            <img 
+              src={getFotoUrl(user.foto_rider)} 
+              alt={user?.nama_rider || 'Rider'} 
+              className="w-full h-full object-cover" 
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <span className="material-symbols-outlined text-4xl text-gray-900">person</span>
+          )}
         </div>
         <h2 className="text-xl font-bold text-gray-900">{user?.nama_rider || 'Rider'}</h2>
         <div className="flex items-center gap-1 text-gray-500 text-sm mt-1">
@@ -116,7 +144,7 @@ export default function RiderLayout() {
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
-          <img src="/susu.png" alt="Susu Gepuk" className="h-14" />
+          <img src="/susu.webp" alt="Susu Gepuk" className="h-14" />
         </div>
 
         {/* Page Content */}

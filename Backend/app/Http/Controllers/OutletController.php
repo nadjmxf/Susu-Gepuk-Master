@@ -114,6 +114,10 @@ class OutletController extends Controller
         }
 
         $outlet->update($validated);
+
+        if (!empty($outlet->id_rider) && !empty($outlet->area)) {
+            \App\Models\Rider::where('id_rider', $outlet->id_rider)->update(['area' => $outlet->area]);
+        }
         
         // Load relation for response
         $outlet->load('rider');

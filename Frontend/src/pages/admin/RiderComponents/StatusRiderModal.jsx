@@ -11,7 +11,7 @@ export default function StatusRiderModal({ isOpen, onClose, onSuccess, selectedR
         status_akun: pendingStatusValue ? 'Aktif' : 'Nonaktif'
       });
       if (response.success) {
-        onSuccess(pendingStatusValue);
+        onSuccess(pendingStatusValue, response.data);
       }
     } catch (err) {
       console.error('Error updating status:', err);

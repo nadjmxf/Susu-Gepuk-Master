@@ -26,10 +26,14 @@ class AuthController extends Controller
             ], 401);
         }
 
+        // Create Sanctum token for admin
+        $token = $admin->createToken('admin-token', ['role:admin'])->plainTextToken;
+
         return response()->json([
             'success' => true,
             'message' => 'Login admin berhasil.',
             'role' => 'admin',
+            'token' => $token,
             'data' => [
                 'id_admin' => $admin->id_admin,
                 'nama_admin' => $admin->nama_admin,
@@ -62,10 +66,14 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Create Sanctum token for rider
+        $token = $rider->createToken('rider-token', ['role:rider'])->plainTextToken;
+
         return response()->json([
             'success' => true,
             'message' => 'Login rider berhasil.',
             'role' => 'rider',
+            'token' => $token,
             'data' => [
                 'id_rider' => $rider->id_rider,
                 'nama_rider' => $rider->nama_rider,
@@ -77,12 +85,53 @@ class AuthController extends Controller
         ]);
     }
 
-    // Logout (opsional jika belum pakai token)
-    public function logout()
+    // Logout — invalidate current token
+    public function logout(Request $request)
     {
+        // Delete the token that was used for this request
+        $request->user()->currentAccessToken()->delete();
+
         return response()->json([
             'success' => true,
             'message' => 'Logout berhasil.'
         ]);
+    }
+
+    // Get current authenticated user info
+    public function me(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user instanceof Admin) {
+            return response()->json([
+                'success' => true,
+                'role' => 'admin',
+                'data' => [
+                    'id_admin' => $user->id_admin,
+                    'nama_admin' => $user->nama_admin,
+                    'username' => $user->username,
+                ]
+            ]);
+        }
+
+        if ($user instanceof Rider) {
+            return response()->json([
+                'success' => true,
+                'role' => 'rider',
+                'data' => [
+                    'id_rider' => $user->id_rider,
+                    'nama_rider' => $user->nama_rider,
+                    'username' => $user->username,
+                    'foto_rider' => $user->foto_rider,
+                    'status_jualan' => $user->status_jualan,
+                    'status_live_location' => $user->status_live_location,
+                ]
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'User tidak dikenali',
+        ], 401);
     }
 }

@@ -17,9 +17,9 @@ export default function Hero() {
   return (
     <section className="w-[95%] max-w-[1450px] mx-auto mb-16 mt-16 opacity-0 animate-fade-in-up" id="home" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
       <div className="bg-white rounded-[45px] flex flex-col md:flex-row overflow-hidden border-4 border-gray-900 shadow-[12px_12px_0_0_rgba(17,24,39,1)] relative min-h-[400px] md:min-h-[500px]">
-        
+
         {/* Full-width Background Illustration */}
-        <div 
+        <div
           className="absolute inset-0 z-0 pointer-events-none"
           style={{
             backgroundImage: "url('/hero-illustration.png')",
@@ -41,13 +41,13 @@ export default function Hero() {
             Rasakan kemurnian susu premium yang diproses dengan cinta. Segar dari peternakan terbaik untuk menemani harimu yang penuh energi.
           </p>
           <div className="flex gap-4">
-            <button 
+            <button
               onClick={() => handleScrollToLocation('lokasi-outlet')}
               className="bg-[#0f2c7a] text-white px-8 py-3 rounded-full font-bold border-4 border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] hover:translate-y-1 hover:shadow-[2px_2px_0_0_rgba(17,24,39,1)] transition-all font-label-bold cursor-pointer"
             >
               Outlet
             </button>
-            <button 
+            <button
               onClick={() => handleScrollToLocation('lokasi-sotr')}
               className="bg-[#0f2c7a] text-white px-8 py-3 rounded-full font-bold border-4 border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] hover:translate-y-1 hover:shadow-[2px_2px_0_0_rgba(17,24,39,1)] transition-all font-label-bold cursor-pointer"
             >

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 use App\Models\Announcement;
 use Illuminate\Support\Facades\Storage;
+use App\Helpers\ImageHelper;
 
 class AnnouncementController extends Controller
 {
@@ -47,10 +48,7 @@ class AnnouncementController extends Controller
         ]);
 
         if ($request->hasFile('gambar_announcement')) {
-            $file = $request->file('gambar_announcement');
-            $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '', $file->getClientOriginalName());
-            $gambarPath = $file->storeAs('announcements', $fileName, 'public');
-            $validated['gambar_announcement'] = $gambarPath;
+            $validated['gambar_announcement'] = ImageHelper::convertToWebp($request->file('gambar_announcement'), 'announcements');
         }
 
         $validated['created_at'] = now();
@@ -89,10 +87,7 @@ class AnnouncementController extends Controller
             if ($announcement->gambar_announcement) {
                 Storage::disk('public')->delete($announcement->gambar_announcement);
             }
-            $file = $request->file('gambar_announcement');
-            $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '', $file->getClientOriginalName());
-            $gambarPath = $file->storeAs('announcements', $fileName, 'public');
-            $validated['gambar_announcement'] = $gambarPath;
+            $validated['gambar_announcement'] = ImageHelper::convertToWebp($request->file('gambar_announcement'), 'announcements');
         }
 
         $validated['isi'] = $validated['isi'] ?? '-';

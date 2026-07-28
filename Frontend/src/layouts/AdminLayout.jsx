@@ -14,8 +14,8 @@ export default function AdminLayout({ children }) {
     setUser(currentUser);
   }, []);
 
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    await authService.logout();
     navigate('/admin/login');
   };
 
@@ -125,7 +125,7 @@ export default function AdminLayout({ children }) {
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
-          <img src="/Susuputih (1).png" alt="Susu Gepuk" className="h-8 lg:h-10" />
+          <img src="/Susuputih (1).webp" alt="Susu Gepuk" className="h-8 lg:h-10" />
         </div>
         
         {/* Page Content */}

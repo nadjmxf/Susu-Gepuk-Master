@@ -95,13 +95,13 @@ export default function RiderDetail({
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = '/susu.png';
+                  e.target.src = '/susu.webp';
                   e.target.className = 'w-full h-full object-contain p-4 bg-white';
                 }}
               />
             ) : (
               <img
-                src="/susu.png"
+                src="/susu.webp"
                 alt="Logo Susu Gepuk"
                 className="w-full h-full object-contain p-4 bg-white"
               />
@@ -232,19 +232,21 @@ export default function RiderDetail({
           <div className="space-y-4 lg:pl-4 text-left">
             <div>
               <h4 className="text-2xl font-black text-black tracking-tight">{`SOTR-${String(selectedRider.id_rider).padStart(2, '0')}`}</h4>
+              <p className="text-xs font-black text-gray-700 mt-1 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-base text-[#F59E0B]" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
+                <span>Area:</span>
+                <span className="text-black bg-[#fdd835] border-2 border-black px-2 py-0.5 rounded-md shadow-[2px_2px_0_0_#000]">
+                  {selectedRider.area || selectedRider.outlet?.area || 'Belum Ditentukan'}
+                </span>
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
               <span className={`w-3 h-3 rounded-full animate-pulse ${selectedRider.status_jualan === 'Tersedia' ? 'bg-[#22C55E]' : 'bg-red-500'}`}></span>
-              <span className="text-sm font-black text-black">
+              <span className="text-xs font-black text-black">
                 {selectedRider.status_jualan === 'Tersedia' ? 'Sedang Berjualan' : 'Selesai Berjualan / Stok Habis'}
               </span>
             </div>
-
-            <p className="text-xs text-gray-700 font-bold max-w-xs leading-relaxed">
-              <span className="font-black">Alamat: </span>
-              {selectedRider.location?.alamat || 'Lokasi tidak tersedia'}
-            </p>
 
             <p className="text-xs text-gray-500 font-bold">
               Terakhir diperbarui: {selectedRider.location?.waktu_update ? new Date(selectedRider.location.waktu_update).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Belum diperbarui'}

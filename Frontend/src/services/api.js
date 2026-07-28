@@ -27,7 +27,11 @@ api.interceptors.response.use(
       const requestUrl = error.config?.url || '';
       const isLoginRequest = requestUrl.includes('/login/');
       
-      if (!isLoginRequest) {
+      // Only redirect if user was actually logged in (had a token)
+      // Public pages (Landing, Menu, Outlet) should NOT trigger redirect
+      const hadToken = localStorage.getItem('token');
+      
+      if (!isLoginRequest && hadToken) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         // Redirect based on current role

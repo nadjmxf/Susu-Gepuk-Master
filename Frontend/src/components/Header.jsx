@@ -107,7 +107,7 @@ export default function Header() {
         onClick={() => navigate('/')}
         className="flex flex-col leading-none font-bold text-[#0f2c7a] text-xl font-display-xl uppercase tracking-tighter hover:scale-105 transition-transform duration-300 cursor-pointer"
       >
-        <img src="/susu.png" alt="Susu Gepuk" className="w-28 md:w-48" />
+        <img src="/susu.webp" alt="Susu Gepuk" className="w-28 md:w-48" />
       </div>
       
       <nav className="hidden md:flex bg-[#0f2c7a] rounded-full p-1.5 shadow-[0_4px_14px_0_rgba(15,44,122,0.39)] relative">

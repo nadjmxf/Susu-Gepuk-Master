@@ -70,7 +70,7 @@ export default function Promo() {
   return (
     <section className="w-[95%] max-w-[1450px] mx-auto relative mt-4">
       {displayPromos.length > itemsToShow && (
-        <button 
+        <button
           onClick={handlePrev}
           className="absolute left-2 md:-left-6 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full flex items-center justify-center text-[#1e40af] border-[3px] border-[#1e40af] hover:bg-blue-50 shadow-md transition-transform active:scale-95"
         >
@@ -79,19 +79,20 @@ export default function Promo() {
       )}
 
       <div className="overflow-hidden py-4">
-        <div 
+        <div
           className="flex transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${translationValue}%)` }}
         >
           {displayPromos.map((promo, idx) => (
-            <div 
-              key={idx} 
+            <div
+              key={idx}
               className="w-full md:w-[33.3333%] shrink-0 px-2 md:px-4"
             >
               <div className="w-full h-full rounded-[30px] md:rounded-[40px] border-4 border-gray-900 shadow-[6px_6px_0_0_rgba(17,24,39,1)] md:shadow-[8px_8px_0_0_rgba(17,24,39,1)] overflow-hidden bg-white">
-                <img 
-                  src={promo.img} 
-                  alt={promo.alt} 
+                <img
+                  src={promo.img}
+                  alt={promo.alt}
+                  loading="lazy"
                   className="w-full h-full object-cover block"
                 />
               </div>
@@ -101,7 +102,7 @@ export default function Promo() {
       </div>
 
       {displayPromos.length > itemsToShow && (
-        <button 
+        <button
           onClick={handleNext}
           className="absolute right-2 md:-right-6 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full flex items-center justify-center text-[#1e40af] border-[3px] border-[#1e40af] hover:bg-blue-50 shadow-md transition-transform active:scale-95"
         >

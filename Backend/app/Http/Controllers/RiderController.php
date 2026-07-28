@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Rider;
 use App\Models\Lokasi;
 use App\Models\Aktivitas;
+use App\Helpers\ImageHelper;
 
 class RiderController extends Controller
 {
@@ -32,13 +33,36 @@ class RiderController extends Controller
             
             $rider->status_kehadiran = $statusKehadiran;
 
-            // Get latest location coordinates
-            $lastLocation = \App\Models\Lokasi::where('id_rider', $rider->id_rider)
-                ->orderBy('created_at', 'desc')
+            // Get SOTR outlet area if assigned
+            $sotrOutlet = \App\Models\Outlet::where('id_rider', $rider->id_rider)
+                ->where('jenis_outlet', 'Outlet Bergerak')
                 ->first();
+            if ($sotrOutlet) {
+                $rider->area = $sotrOutlet->area;
+                $rider->nama_outlet = $sotrOutlet->nama_outlet;
+            }
 
-            $rider->latitude = $lastLocation ? floatval($lastLocation->latitude) : null;
-            $rider->longitude = $lastLocation ? floatval($lastLocation->longitude) : null;
+            // Get latest location coordinates if live location is active
+            if ($rider->status_live_location === 'Aktif') {
+                $lastLocation = \App\Models\Lokasi::where('id_rider', $rider->id_rider)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                if ($lastLocation) {
+                    $rider->latitude = floatval($lastLocation->latitude);
+                    $rider->longitude = floatval($lastLocation->longitude);
+                }
+
+                if (empty($rider->current_location)) {
+                    $rider->current_location = ($lastLocation && !empty($lastLocation->alamat))
+                        ? $lastLocation->alamat
+                        : ($rider->area ? 'Area ' . $rider->area : 'Pekanbaru');
+                }
+            } else {
+                $rider->current_location = null;
+                $rider->latitude = null;
+                $rider->longitude = null;
+            }
 
             return $rider;
         });
@@ -58,6 +82,15 @@ class RiderController extends Controller
                 'success' => false,
                 'message' => 'Rider tidak ditemukan',
             ], 404);
+        }
+
+        // Get SOTR outlet area if assigned
+        $sotrOutlet = \App\Models\Outlet::where('id_rider', $rider->id_rider)
+            ->where('jenis_outlet', 'Outlet Bergerak')
+            ->first();
+        if ($sotrOutlet) {
+            $rider->area = $sotrOutlet->area;
+            $rider->nama_outlet = $sotrOutlet->nama_outlet;
         }
 
         // Calculate performance metrics (e.g. for the current month)
@@ -112,11 +145,13 @@ class RiderController extends Controller
             'sakit' => $sakitCount,
         ];
 
+        $isLiveActive = $rider->status_live_location === 'Aktif';
+
         $rider->location = [
-            'latitude' => $lastLocation ? floatval($lastLocation->latitude) : null,
-            'longitude' => $lastLocation ? floatval($lastLocation->longitude) : null,
-            'alamat' => $lastLocation ? ($lastLocation->alamat ?? 'Lokasi tidak tersedia') : 'Jl. Jend. Sudirman Kav. 1, Jakarta Pusat',
-            'waktu_update' => $lastLocation ? $lastLocation->waktu_update : null,
+            'latitude' => ($isLiveActive && $lastLocation) ? floatval($lastLocation->latitude) : null,
+            'longitude' => ($isLiveActive && $lastLocation) ? floatval($lastLocation->longitude) : null,
+            'alamat' => ($isLiveActive && $lastLocation) ? ($lastLocation->alamat ?? 'Lokasi tidak tersedia') : 'Lokasi tidak tersedia',
+            'waktu_update' => ($isLiveActive && $lastLocation) ? $lastLocation->waktu_update : null,
         ];
 
         // Also determine current status_kehadiran
@@ -154,10 +189,7 @@ class RiderController extends Controller
         ]);
 
         if ($request->hasFile('foto_rider')) {
-            $file = $request->file('foto_rider');
-            $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '', $file->getClientOriginalName());
-            $fotoPath = $file->storeAs('riders', $fileName, 'public');
-            $validated['foto_rider'] = $fotoPath;
+            $validated['foto_rider'] = ImageHelper::convertToWebp($request->file('foto_rider'), 'riders');
         }
 
         $validated['password'] = bcrypt($validated['password']);
@@ -193,6 +225,11 @@ class RiderController extends Controller
             'foto_rider' => 'nullable|image|max:2048',
         ]);
 
+        if (isset($validated['status_akun'])) {
+            $validated['status_live_location'] = 'Nonaktif';
+            $validated['current_location'] = null;
+        }
+
         if (isset($validated['password']) && !empty($validated['password'])) {
             $validated['password'] = bcrypt($validated['password']);
         } else {
@@ -200,15 +237,11 @@ class RiderController extends Controller
         }
 
         if ($request->hasFile('foto_rider')) {
-            $file = $request->file('foto_rider');
-            $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '', $file->getClientOriginalName());
-            $fotoPath = $file->storeAs('riders', $fileName, 'public');
-            $validated['foto_rider'] = $fotoPath;
-            
             // Delete old photo if exists
             if ($rider->foto_rider) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($rider->foto_rider);
             }
+            $validated['foto_rider'] = ImageHelper::convertToWebp($request->file('foto_rider'), 'riders');
         }
 
         $rider->update($validated);
@@ -238,8 +271,16 @@ class RiderController extends Controller
         ]);
     }
 
-    public function getLocation($id)
+    public function getLocation(Request $request, $id)
     {
+        // IDOR protection: rider hanya bisa akses lokasi sendiri
+        if ($request->user() instanceof \App\Models\Rider && $request->user()->id_rider !== (int) $id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses ke data rider ini.',
+            ], 403);
+        }
+
         $rider = Rider::find($id);
         
         if (!$rider) {
@@ -254,21 +295,31 @@ class RiderController extends Controller
             ->orderBy('created_at', 'desc')
             ->first();
 
+        $isLiveActive = $rider->status_live_location === 'Aktif';
+
         return response()->json([
             'success' => true,
             'data' => [
                 'id_rider' => $rider->id_rider,
                 'status_live_location' => $rider->status_live_location,
-                'latitude' => $lastLocation ? $lastLocation->latitude : -6.2088,
-                'longitude' => $lastLocation ? $lastLocation->longitude : 106.8456,
-                'waktu_update' => $lastLocation ? $lastLocation->waktu_update : null,
-                'alamat' => $lastLocation ? $lastLocation->alamat ?? 'Lokasi tidak tersedia' : 'Jl. Jend. Sudirman Kav. 1, Jakarta Pusat',
+                'latitude' => ($isLiveActive && $lastLocation) ? floatval($lastLocation->latitude) : null,
+                'longitude' => ($isLiveActive && $lastLocation) ? floatval($lastLocation->longitude) : null,
+                'waktu_update' => ($isLiveActive && $lastLocation) ? $lastLocation->waktu_update : null,
+                'alamat' => ($isLiveActive && $lastLocation) ? ($lastLocation->alamat ?? 'Lokasi tidak tersedia') : 'Lokasi tidak tersedia',
             ],
         ]);
     }
 
     public function updateLocation(Request $request, $id)
     {
+        // IDOR protection: rider hanya bisa update lokasi sendiri
+        if ($request->user() instanceof \App\Models\Rider && $request->user()->id_rider !== (int) $id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses ke data rider ini.',
+            ], 403);
+        }
+
         $rider = Rider::find($id);
         
         if (!$rider) {

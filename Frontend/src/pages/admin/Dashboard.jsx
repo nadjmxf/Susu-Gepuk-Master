@@ -163,9 +163,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Map & KPI Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Map Column */}
-        <div className="lg:col-span-2 bg-white border-[3px] border-black rounded-2xl shadow-[6px_6px_0_0_#000] overflow-hidden flex flex-col h-[450px]">
+        <div className="lg:col-span-3 bg-white border-[3px] border-black rounded-2xl shadow-[6px_6px_0_0_#000] overflow-hidden flex flex-col h-[450px]">
           {/* Header Map */}
           <div className="bg-[#fdd835] border-b-[3px] border-black px-6 py-4 flex items-center justify-between shrink-0">
             <h2 className="text-sm font-black text-black uppercase tracking-wider">LIVE MONITORING LOKASI PEKANBARU</h2>
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
           <div className="flex-1 relative overflow-hidden bg-[#e5e7eb] select-none h-full w-full z-0">
             <MapContainer 
               center={[0.5074, 101.4478]} 
-              zoom={13} 
+              zoom={10} 
               style={{ height: '100%', width: '100%' }}
               zoomControl={true}
             >
@@ -230,12 +230,12 @@ export default function AdminDashboard() {
         </div>
 
         {/* KPI Cards Column */}
-        <div className="flex flex-col justify-between gap-6 w-full h-full min-h-[450px]">
+        <div className="lg:col-span-1 flex flex-col justify-between gap-6 w-full h-full min-h-[450px]">
           {/* Card 1 */}
-          <div className="bg-white border-[3px] border-black rounded-2xl py-7 px-6 shadow-[6px_6px_0_0_#000] flex flex-col justify-center flex-1 w-full">
+          <div className="bg-white border-[3px] border-black rounded-2xl py-6 px-5 shadow-[6px_6px_0_0_#000] flex flex-col justify-center flex-1 w-full">
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">RIDER DI FIELD</p>
-            <h3 className="text-4xl font-black text-black tracking-tight my-1">
-              {riderStats.active} <span className="text-xl text-gray-400 font-bold">/ {riderStats.total}</span>
+            <h3 className="text-3xl xl:text-4xl font-black text-black tracking-tight my-1">
+              {riderStats.active} <span className="text-lg xl:text-xl text-gray-400 font-bold">/ {riderStats.total}</span>
             </h3>
             <p className="text-xs text-gray-600 font-bold mt-1">
               {riderStats.off > 0 ? `${riderStats.off} Rider cuti/sakit` : 'Semua rider aktif & sehat'}
@@ -243,10 +243,10 @@ export default function AdminDashboard() {
           </div>
 
           {/* Card 2 */}
-          <div className="bg-white border-[3px] border-black rounded-2xl py-7 px-6 shadow-[6px_6px_0_0_#000] flex flex-col justify-center flex-1 w-full">
+          <div className="bg-white border-[3px] border-black rounded-2xl py-6 px-5 shadow-[6px_6px_0_0_#000] flex flex-col justify-center flex-1 w-full">
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">OUTLET TETAP AKTIF</p>
-            <h3 className="text-4xl font-black text-black tracking-tight my-1">
-              {outletStats.active} <span className="text-xl text-gray-400 font-bold">Units / {outletStats.total}</span>
+            <h3 className="text-3xl xl:text-4xl font-black text-black tracking-tight my-1">
+              {outletStats.active} <span className="text-lg xl:text-xl text-gray-400 font-bold">Units / {outletStats.total}</span>
             </h3>
             <p className="text-xs text-gray-600 font-bold mt-1">Semua unit dalam kondisi prima</p>
           </div>

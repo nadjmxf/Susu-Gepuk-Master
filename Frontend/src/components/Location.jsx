@@ -45,7 +45,8 @@ export default function Location() {
         setLoadingRiders(true);
         const response = await riderService.getAllRiders();
         if (response.success && response.data) {
-          setRiders(response.data.slice(0, 3)); // Show max 3 on landing
+          const activeRiders = response.data.filter(rider => rider.status_akun === 'Aktif');
+          setRiders(activeRiders.slice(0, 3)); // Show max 3 on landing
         }
       } catch (err) {
         console.error('Error fetching riders for landing:', err);
@@ -160,17 +161,19 @@ export default function Location() {
                         <img
                           src={fotoUrl}
                           alt={rider.nama_rider}
+                          loading="lazy"
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = '/susu.png';
+                            e.target.src = '/susu.webp';
                             e.target.className = 'w-full h-full object-contain p-2 bg-white';
                           }}
                         />
                       ) : (
                         <img 
-                          src="/susu.png" 
+                          src="/susu.webp" 
                           alt="Logo Susu Gepuk" 
+                          loading="lazy"
                           className="w-full h-full object-contain p-2 bg-white"
                         />
                       )}
@@ -186,14 +189,16 @@ export default function Location() {
                       <div>
                         <p className="text-[10px] text-gray-500 mb-1 font-label-bold uppercase tracking-wider">LOKASI SAAT INI</p>
                         <p className="font-bold text-gray-900 text-sm">
-                          {rider.current_location || 'Lokasi tidak tersedia'}
+                          {rider.status_live_location === 'Aktif' ? (rider.current_location || 'Lokasi Aktif') : 'Lokasi tidak tersedia'}
                         </p>
                       </div>
                     </div>
 
-                    {rider.latitude && rider.longitude && rider.status_live_location === 'Aktif' ? (
+                    {rider.status_live_location === 'Aktif' && (rider.latitude && rider.longitude || rider.current_location) ? (
                       <a
-                        href={`https://www.google.com/maps?q=${rider.latitude},${rider.longitude}`}
+                        href={rider.latitude && rider.longitude 
+                          ? `https://www.google.com/maps?q=${rider.latitude},${rider.longitude}` 
+                          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rider.current_location)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="bg-[#b91c1c] text-white font-bold px-6 py-3 rounded-full border-[3px] border-gray-900 shadow-[4px_4px_0_0_rgba(17,24,39,1)] flex items-center gap-2 hover:bg-red-800 hover:translate-y-1 hover:shadow-[2px_2px_0_0_rgba(17,24,39,1)] transition-all text-[11px] uppercase tracking-wide"
@@ -231,7 +236,7 @@ export default function Location() {
       <div className="w-full mt-8 bg-[#1e3a8a]">
         {/* Illustration */}
         <div className="w-full">
-          <img src="/footersapi.png" alt="Susu Gepuk Farm" className="w-full h-auto block" />
+          <img src="/footersapi.webp" alt="Susu Gepuk Farm" loading="lazy" className="w-full h-auto block" />
         </div>
 
         {/* Footer Content */}
@@ -240,7 +245,7 @@ export default function Location() {
           {/* Logo pill (centered absolute overlapping) */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
             <div className="bg-white border-4 border-gray-900 rounded-[40px] px-8 py-3 shadow-[4px_4px_0_0_rgba(17,24,39,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_rgba(17,24,39,1)] transition-all cursor-pointer flex items-center justify-center">
-              <img src="/susu.png" alt="Susu Gepuk" className="h-8 md:h-10 object-contain" />
+              <img src="/susu.webp" alt="Susu Gepuk" loading="lazy" className="h-8 md:h-10 object-contain" />
             </div>
           </div>
 

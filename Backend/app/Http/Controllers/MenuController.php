@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Menu;
+use App\Helpers\ImageHelper;
 
 class MenuController extends Controller
 {
@@ -51,10 +52,7 @@ class MenuController extends Controller
         ]);
 
         if ($request->hasFile('gambar_menu')) {
-            $file = $request->file('gambar_menu');
-            $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '', $file->getClientOriginalName());
-            $gambarPath = $file->storeAs('menus', $fileName, 'public');
-            $validated['gambar_menu'] = $gambarPath;
+            $validated['gambar_menu'] = ImageHelper::convertToWebp($request->file('gambar_menu'), 'menus');
         }
 
         $menu = Menu::create($validated);
@@ -87,14 +85,11 @@ class MenuController extends Controller
         ]);
 
         if ($request->hasFile('gambar_menu')) {
-            $file = $request->file('gambar_menu');
-            $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '', $file->getClientOriginalName());
-            $gambarPath = $file->storeAs('menus', $fileName, 'public');
-            $validated['gambar_menu'] = $gambarPath;
-
+            // Delete old image if exists
             if ($menu->gambar_menu) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($menu->gambar_menu);
             }
+            $validated['gambar_menu'] = ImageHelper::convertToWebp($request->file('gambar_menu'), 'menus');
         }
 
         $menu->update($validated);

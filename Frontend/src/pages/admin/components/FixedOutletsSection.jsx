@@ -150,17 +150,6 @@ export default function FixedOutletsSection({ fixedOutlets, onRefresh, handleTog
           ---------------------------------------------------- */}
       <div id="fixed-outlets-section" className="space-y-4">
 
-        {/* Header Row with Add Button */}
-        <div className="flex justify-end">
-          <button
-            onClick={openAddFixed}
-            className="bg-[#FACC15] hover:bg-yellow-400 text-black border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all rounded-xl px-5 py-2.5 font-black text-xs uppercase flex items-center gap-2 cursor-pointer shrink-0"
-          >
-            <span className="material-symbols-outlined font-black text-sm">add</span>
-            TAMBAH OUTLET
-          </button>
-        </div>
-
         {/* Section Title Pill Line */}
         <div className="flex items-center gap-4 w-full">
           <div className="bg-[#3B82F6] border-[3px] border-black text-white font-black text-xs uppercase px-5 py-2.5 rounded-full inline-flex items-center gap-2 cursor-pointer shadow-[3px_3px_0_0_#000] tracking-wider whitespace-nowrap">
@@ -392,9 +381,18 @@ export default function FixedOutletsSection({ fixedOutlets, onRefresh, handleTog
               </button>
             </div>
           </div>
-
         </div>
 
+        {/* Footer Row with Add Button */}
+        <div className="flex justify-end pt-2">
+          <button
+            onClick={openAddFixed}
+            className="bg-[#FACC15] hover:bg-yellow-400 text-black border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_#000] transition-all rounded-xl px-5 py-2.5 font-black text-xs uppercase flex items-center gap-2 cursor-pointer shrink-0"
+          >
+            <span className="material-symbols-outlined font-black text-sm">add</span>
+            TAMBAH OUTLET
+          </button>
+        </div>
       </div>
 
       {/* Modal Tambah/Edit Fixed Outlet */}

@@ -33,6 +33,7 @@ export default function RekapPenjualan() {
       nominal: '',
     };
     menuItems.forEach(product => {
+      initial[`stok_bawa_${product.id}`] = product.stokBawa ?? 20;
       initial[`terjual_${product.id}`] = 0;
       initial[`basi_${product.id}`] = 0;
       initial[`rusak_${product.id}`] = 0;
@@ -81,7 +82,16 @@ export default function RekapPenjualan() {
 
   // Handle form input change
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+
+    // Remove leading zeros when typing (e.g., '05' becomes '5')
+    if (value !== '') {
+      value = value.replace(/^0+(?=\d)/, '');
+    } else if (name.startsWith('stok_bawa_') || name.startsWith('terjual_') || name.startsWith('basi_') || name.startsWith('rusak_')) {
+      // Return to 0 if the input is completely cleared
+      value = 0;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -117,6 +127,7 @@ export default function RekapPenjualan() {
     let totalSisaStok = 0;
 
     products.forEach(product => {
+      const stokBawa = parseInt(formData[`stok_bawa_${product.id}`] ?? product.stokBawa ?? 20) || 0;
       const terjual = parseInt(formData[`terjual_${product.id}`] || 0);
       const basi = parseInt(formData[`basi_${product.id}`] || 0);
       const rusak = parseInt(formData[`rusak_${product.id}`] || 0);
@@ -125,7 +136,7 @@ export default function RekapPenjualan() {
       totalBasi += basi;
       totalRusak += rusak;
       totalPendapatan += terjual * product.price;
-      totalSisaStok += (product.stokBawa - terjual - basi - rusak);
+      totalSisaStok += (stokBawa - terjual - basi - rusak);
     });
 
     return {
@@ -159,6 +170,23 @@ export default function RekapPenjualan() {
         showAlertMessage('Bukti transfer QRIS harus diunggah untuk pembayaran via Transfer QRIS', 'error');
         setSubmitting(false);
         return;
+      }
+
+      // Validation: per product stock limit check
+      for (const product of products) {
+        const stokBawa = parseInt(formData[`stok_bawa_${product.id}`] ?? product.stokBawa ?? 20) || 0;
+        const terjual = parseInt(formData[`terjual_${product.id}`] || 0);
+        const basi = parseInt(formData[`basi_${product.id}`] || 0);
+        const rusak = parseInt(formData[`rusak_${product.id}`] || 0);
+
+        if (terjual + basi + rusak > stokBawa) {
+          showAlertMessage(
+            `Total (Terjual + Basi + Rusak) untuk ${product.name} (${terjual + basi + rusak} pcs) melebihi stok bawa (${stokBawa} pcs)`,
+            'error'
+          );
+          setSubmitting(false);
+          return;
+        }
       }
 
       // Validate that at least one product was sold
@@ -374,9 +402,14 @@ export default function RekapPenjualan() {
             <div key={product.id} className="flex flex-col gap-2">
               <p className="text-[10px] text-white font-bold uppercase tracking-wider">{product.name}</p>
               <p className="text-[10px] text-blue-200 mb-1">Rp {product.price.toLocaleString('id-ID')}</p>
-              <div className="bg-white border-2 border-gray-900 rounded px-3 py-2 text-center text-blue-600 font-bold text-lg shadow-[2px_2px_0_0_rgba(17,24,39,1)]">
-                {product.stokBawa}
-              </div>
+              <input
+                type="number"
+                name={`stok_bawa_${product.id}`}
+                value={formData[`stok_bawa_${product.id}`] ?? product.stokBawa ?? 20}
+                onChange={handleInputChange}
+                min={0}
+                className="bg-white border-2 border-gray-900 rounded p-2 text-center text-blue-600 font-bold text-lg shadow-[2px_2px_0_0_rgba(17,24,39,1)] focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
+              />
             </div>
           ))}
         </div>
@@ -400,106 +433,112 @@ export default function RekapPenjualan() {
             </div>
 
             <div className="divide-y-2 divide-gray-900">
-              {products.map(product => (
-                <div key={product.id} className="grid grid-cols-4 gap-4 p-4 items-center">
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{product.name}</p>
-                    <p className="text-xs text-gray-500">Rp {product.price.toLocaleString('id-ID')}</p>
+              {products.map(product => {
+                const stokBawaVal = parseInt(formData[`stok_bawa_${product.id}`] ?? product.stokBawa ?? 20) || 0;
+                return (
+                  <div key={product.id} className="grid grid-cols-4 gap-4 p-4 items-center">
+                    <div>
+                      <p className="font-bold text-gray-900 text-sm">{product.name}</p>
+                      <p className="text-xs text-gray-500">Rp {product.price.toLocaleString('id-ID')}</p>
+                    </div>
+                    <div className="flex justify-center">
+                      <input
+                        type="number"
+                        name={`terjual_${product.id}`}
+                        value={formData[`terjual_${product.id}`] ?? ''}
+                        onChange={handleInputChange}
+                        min={0}
+                        max={stokBawaVal}
+                        required
+                        className="w-20 bg-white border-2 border-gray-900 rounded p-2 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
+                      />
+                    </div>
+                    <div className="flex justify-center">
+                      <input
+                        type="number"
+                        name={`basi_${product.id}`}
+                        value={formData[`basi_${product.id}`] ?? ''}
+                        onChange={handleInputChange}
+                        min={0}
+                        max={stokBawaVal}
+                        className="w-20 bg-white border-2 border-gray-900 rounded p-2 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
+                      />
+                    </div>
+                    <div className="flex justify-center">
+                      <input
+                        type="number"
+                        name={`rusak_${product.id}`}
+                        value={formData[`rusak_${product.id}`] ?? ''}
+                        onChange={handleInputChange}
+                        min={0}
+                        max={stokBawaVal}
+                        className="w-20 bg-white border-2 border-gray-900 rounded p-2 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-center">
-                    <input
-                      type="number"
-                      name={`terjual_${product.id}`}
-                      value={formData[`terjual_${product.id}`] || 0}
-                      onChange={handleInputChange}
-                      min={0}
-                      max={product.stokBawa}
-                      required
-                      className="w-20 bg-white border-2 border-gray-900 rounded p-2 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
-                    />
-                  </div>
-                  <div className="flex justify-center">
-                    <input
-                      type="number"
-                      name={`basi_${product.id}`}
-                      value={formData[`basi_${product.id}`] || 0}
-                      onChange={handleInputChange}
-                      min={0}
-                      max={product.stokBawa}
-                      className="w-20 bg-white border-2 border-gray-900 rounded p-2 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
-                    />
-                  </div>
-                  <div className="flex justify-center">
-                    <input
-                      type="number"
-                      name={`rusak_${product.id}`}
-                      value={formData[`rusak_${product.id}`] || 0}
-                      onChange={handleInputChange}
-                      min={0}
-                      max={product.stokBawa}
-                      className="w-20 bg-white border-2 border-gray-900 rounded p-2 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Mobile Card View */}
           <div className="block md:hidden space-y-4">
-            {products.map(product => (
-              <div key={product.id} className="bg-white border-2 border-gray-900 rounded-xl p-4 flex flex-col gap-3 shadow-[2px_2px_0_0_rgba(17,24,39,1)] text-left">
-                <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{product.name}</p>
-                    <p className="text-xs text-gray-500 font-bold">Rp {product.price.toLocaleString('id-ID')}</p>
+            {products.map(product => {
+              const stokBawaVal = parseInt(formData[`stok_bawa_${product.id}`] ?? product.stokBawa ?? 20) || 0;
+              return (
+                <div key={product.id} className="bg-white border-2 border-gray-900 rounded-xl p-4 flex flex-col gap-3 shadow-[2px_2px_0_0_rgba(17,24,39,1)] text-left">
+                  <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                    <div>
+                      <p className="font-bold text-gray-900 text-sm">{product.name}</p>
+                      <p className="text-xs text-gray-500 font-bold">Rp {product.price.toLocaleString('id-ID')}</p>
+                    </div>
+                    <span className="bg-blue-100 text-blue-800 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-blue-300">
+                      Bawa: {stokBawaVal} pcs
+                    </span>
                   </div>
-                  <span className="bg-blue-100 text-blue-800 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-blue-300">
-                    Bawa: {product.stokBawa} pcs
-                  </span>
+                  
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="flex flex-col">
+                      <label className="text-[9px] font-black text-gray-500 uppercase mb-1 text-center">Terjual</label>
+                      <input
+                        type="number"
+                        name={`terjual_${product.id}`}
+                        value={formData[`terjual_${product.id}`] ?? ''}
+                        onChange={handleInputChange}
+                        min={0}
+                        max={stokBawaVal}
+                        required
+                        className="w-full bg-white border-2 border-gray-900 rounded p-1.5 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-[9px] font-black text-gray-500 uppercase mb-1 text-center">Basi</label>
+                      <input
+                        type="number"
+                        name={`basi_${product.id}`}
+                        value={formData[`basi_${product.id}`] ?? ''}
+                        onChange={handleInputChange}
+                        min={0}
+                        max={stokBawaVal}
+                        className="w-full bg-white border-2 border-gray-900 rounded p-1.5 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-[9px] font-black text-gray-500 uppercase mb-1 text-center">Rusak</label>
+                      <input
+                        type="number"
+                        name={`rusak_${product.id}`}
+                        value={formData[`rusak_${product.id}`] ?? ''}
+                        onChange={handleInputChange}
+                        min={0}
+                        max={stokBawaVal}
+                        className="w-full bg-white border-2 border-gray-900 rounded p-1.5 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
+                      />
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="flex flex-col">
-                    <label className="text-[9px] font-black text-gray-500 uppercase mb-1 text-center">Terjual</label>
-                    <input
-                      type="number"
-                      name={`terjual_${product.id}`}
-                      value={formData[`terjual_${product.id}`] || 0}
-                      onChange={handleInputChange}
-                      min={0}
-                      max={product.stokBawa}
-                      required
-                      className="w-full bg-white border-2 border-gray-900 rounded p-1.5 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <label className="text-[9px] font-black text-gray-500 uppercase mb-1 text-center">Basi</label>
-                    <input
-                      type="number"
-                      name={`basi_${product.id}`}
-                      value={formData[`basi_${product.id}`] || 0}
-                      onChange={handleInputChange}
-                      min={0}
-                      max={product.stokBawa}
-                      className="w-full bg-white border-2 border-gray-900 rounded p-1.5 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <label className="text-[9px] font-black text-gray-500 uppercase mb-1 text-center">Rusak</label>
-                    <input
-                      type="number"
-                      name={`rusak_${product.id}`}
-                      value={formData[`rusak_${product.id}`] || 0}
-                      onChange={handleInputChange}
-                      min={0}
-                      max={product.stokBawa}
-                      className="w-full bg-white border-2 border-gray-900 rounded p-1.5 text-center font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fdd835]"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

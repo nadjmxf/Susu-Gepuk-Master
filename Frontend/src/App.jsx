@@ -41,7 +41,7 @@ function App() {
           <Route path="/outlets" element={<OutletLocation />} />
           <Route path="/sotr" element={<SotrLocation />} />
           <Route path="/admin/login" element={<Login />} />
-          <Route path="/admin/register" element={<Register />} />
+          {/* Register page removed for security — admin accounts are created via admin panel */}
           <Route path="/admin/forgot" element={<ForgotPassword />} />
 
           {/* Rider Routes */}

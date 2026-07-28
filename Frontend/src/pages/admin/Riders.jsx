@@ -66,8 +66,13 @@ export default function Riders() {
       setLoading(true);
       const response = await riderService.getRiderById(rider.id_rider);
       if (response.success && response.data) {
-        setSelectedRider(response.data);
-        setStatusAkunRider(response.data.status_akun === 'Aktif');
+        const detailedRider = {
+          ...rider,
+          ...response.data,
+          area: response.data.area || rider.area || 'Belum Ditentukan'
+        };
+        setSelectedRider(detailedRider);
+        setStatusAkunRider(detailedRider.status_akun === 'Aktif');
       } else {
         setSelectedRider(rider);
         setStatusAkunRider(rider.status_akun === 'Aktif');
@@ -141,7 +146,7 @@ export default function Riders() {
       id_rider: rider.id_rider,
       nama_rider: rider.nama_rider,
       no_hp: formattedPhone,
-      area: rider.area || 'Daerah Sudirman - Senayan',
+      area: rider.area || 'Belum Ditentukan',
       status_akun: rider.status_akun || 'Aktif',
       status_kehadiran: rider.status_kehadiran || 'TIDAK ADA AKTIVITAS',
       code: `SOTR-${String(rider.id_rider).padStart(2, '0')}`
@@ -233,9 +238,20 @@ export default function Riders() {
         onClose={() => setIsConfirmStatusModalOpen(false)}
         selectedRider={selectedRider}
         pendingStatusValue={pendingStatusValue}
-        onSuccess={(newStatus) => {
+        onSuccess={(newStatus, updatedData) => {
           setStatusAkunRider(newStatus);
-          const updatedRider = { ...selectedRider, status_akun: newStatus ? 'Aktif' : 'Nonaktif' };
+          const updatedRider = updatedData ? {
+            ...selectedRider,
+            ...updatedData,
+            status_akun: newStatus ? 'Aktif' : 'Nonaktif',
+          } : {
+            ...selectedRider,
+            status_akun: newStatus ? 'Aktif' : 'Nonaktif',
+            status_live_location: 'Nonaktif',
+            current_location: null,
+            latitude: null,
+            longitude: null,
+          };
           setSelectedRider(updatedRider);
           setRiders(prevRiders => prevRiders.map(r => r.id_rider === selectedRider.id_rider ? updatedRider : r));
           setIsConfirmStatusModalOpen(false);

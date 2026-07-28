@@ -200,7 +200,7 @@ export default function OutletLocations() {
           {/* Responsive Illustration */}
           <div className="w-full relative overflow-hidden">
             <img
-              src="/footersapi.png"
+              src="/footersapi.webp"
               alt="Susu Gepuk Farm"
               className="w-full h-auto object-cover block"
             />
@@ -210,7 +210,7 @@ export default function OutletLocations() {
           <div className="bg-[#0f2c7a] pt-12 pb-8 px-8 relative">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
               <div className="bg-white border-4 border-gray-900 rounded-[40px] px-11 py-2 shadow-[4px_4px_0_0_rgba(17,24,39,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_rgba(17,24,39,1)] transition-all cursor-pointer flex items-center justify-center">
-                <img src="/susu.png" alt="Susu Gepuk" className="h-14 md:h-16" />
+                <img src="/susu.webp" alt="Susu Gepuk" className="h-14 md:h-16" />
               </div>
             </div>
 
